@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "deny": [
+      "Bash(rm *)",
+      "Bash(rm)",
+      "Bash(rmdir *)",
+      "Bash(rmdir)",
+      "Bash(shred *)",
+      "Bash(shred)",
+      "Bash(unlink *)",
+      "Bash(find * -delete*)",
+      "Bash(find * -exec rm*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push -f)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D *)",
+      "Bash(dd *)",
+      "Bash(dd)",
+      "Bash(mkfs*)",
+      "Bash(fdisk *)",
+      "Bash(parted *)",
+      "Bash(wipefs *)",
+      "Bash(chmod -R 777*)",
+      "Bash(chown -R *)",
+      "Bash(sudo rm *)",
+      "Bash(sudo rmdir *)",
+      "Bash(sudo dd *)",
+      "Bash(sudo mkfs*)",
+      "Bash(:(){:|:&};:)",
+      "Bash(> /dev/*)",
+      "Bash(truncate *)"
+    ]
+  }
+}
