@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskManagementForAI</title>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: #172b4d; background: #f4f5f7; min-height: 100vh; }
+  button { cursor: pointer; border: none; background: none; font-family: inherit; font-size: inherit; }
+  input, textarea { font-family: inherit; font-size: inherit; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ===== App Header ===== */
+  .app-header { background: #0052cc; color: #fff; padding: 0 16px; height: 48px; display: flex; align-items: center; }
+  .app-header h1 { font-size: 16px; font-weight: 700; }
+
+  /* ===== Views ===== */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ===== Board List Screen ===== */
+  #view-boards { padding: 32px 24px; }
+  .boards-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .boards-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  .board-card {
+    width: 192px; height: 96px; border-radius: 6px; background: #0079bf; color: #fff;
+    padding: 12px; display: flex; flex-direction: column; justify-content: space-between;
+    cursor: pointer; position: relative; transition: filter .1s;
+  }
+  .board-card:hover { filter: brightness(1.12); }
+  .board-card-title { font-size: 15px; font-weight: 700; word-break: break-all; }
+  .board-card-menu { position: absolute; top: 6px; right: 8px; opacity: .7; font-size: 16px; }
+  .board-card-menu:hover { opacity: 1; }
+  .board-card-new {
+    width: 192px; height: 96px; border-radius: 6px; background: #e2e5ea;
+    color: #5e6c84; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; font-weight: 500; transition: background .1s;
+  }
+  .board-card-new:hover { background: #cdd0d8; color: #172b4d; }
+  .boards-empty { text-align: center; padding: 80px 0; color: #5e6c84; }
+  .boards-empty p { margin-bottom: 16px; font-size: 16px; }
+
+  /* ===== Kanban Screen ===== */
+  #view-kanban { display: none; flex-direction: column; height: calc(100vh - 48px); }
+  #view-kanban.active { display: flex; }
+  .kanban-header {
+    background: rgba(0,0,0,.2); backdrop-filter: blur(4px); padding: 8px 16px;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    background: #0065a3; color: #fff;
+  }
+  .kanban-header-back { font-size: 13px; padding: 4px 10px; border-radius: 4px; background: rgba(255,255,255,.2); color: #fff; }
+  .kanban-header-back:hover { background: rgba(255,255,255,.3); }
+  .kanban-header-title { font-size: 16px; font-weight: 700; flex: 1; cursor: pointer; padding: 4px 6px; border-radius: 4px; }
+  .kanban-header-title:hover { background: rgba(255,255,255,.2); }
+  .kanban-header-title-input { font-size: 16px; font-weight: 700; background: rgba(255,255,255,.9); border: none; border-radius: 4px; padding: 4px 6px; color: #172b4d; outline: none; }
+  .kanban-header-btn { font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(255,255,255,.2); color: #fff; }
+  .kanban-header-btn:hover { background: rgba(255,255,255,.3); }
+
+  .kanban-body { flex: 1; overflow-x: auto; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; }
+
+  /* ===== List Column ===== */
+  .list-column {
+    width: 272px; flex-shrink: 0; background: #ebecf0; border-radius: 6px;
+    display: flex; flex-direction: column; max-height: 100%;
+  }
+  .list-column.drag-over { outline: 2px dashed #0079bf; }
+  .list-column.dragging { opacity: .5; }
+  .list-header { padding: 8px 12px; display: flex; align-items: center; gap: 6px; cursor: grab; }
+  .list-header:active { cursor: grabbing; }
+  .list-title { font-weight: 700; flex: 1; font-size: 14px; cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+  .list-title:hover { background: rgba(0,0,0,.07); }
+  .list-title-input { flex: 1; font-weight: 700; font-size: 14px; background: #fff; border: 2px solid #0052cc; border-radius: 3px; padding: 2px 4px; outline: none; }
+  .list-menu-btn { color: #5e6c84; font-size: 16px; border-radius: 3px; padding: 2px 6px; }
+  .list-menu-btn:hover { background: rgba(0,0,0,.1); }
+
+  .card-list { padding: 0 8px 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 8px; }
+
+  /* ===== Card ===== */
+  .card {
+    background: #fff; border-radius: 4px; padding: 8px 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.15); cursor: pointer;
+    position: relative; transition: box-shadow .1s;
+  }
+  .card:hover { box-shadow: 0 3px 8px rgba(0,0,0,.2); }
+  .card.dragging { opacity: .4; }
+  .card-placeholder { background: rgba(0,121,191,.2); border-radius: 4px; border: 2px dashed #0079bf; height: 48px; }
+  .card-labels { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .card-label-chip { height: auto; border-radius: 4px; min-width: 32px; padding: 2px 6px; font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; }
+  .card-title { font-size: 13px; line-height: 1.4; word-break: break-word; }
+  .card-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 12px; color: #5e6c84; }
+  .card-due { display: flex; align-items: center; gap: 3px; padding: 2px 5px; border-radius: 3px; }
+  .card-due.overdue { background: #ffebe6; color: #bf2600; }
+  .card-due.today { background: #fffae6; color: #ff8b00; }
+  .card-checklist-badge { display: flex; align-items: center; gap: 3px; }
+
+  /* ===== Add Card ===== */
+  .add-card-btn { margin: 0 8px 8px; padding: 6px 8px; border-radius: 4px; color: #5e6c84; display: flex; align-items: center; gap: 4px; font-size: 13px; }
+  .add-card-btn:hover { background: rgba(0,0,0,.07); color: #172b4d; }
+  .add-card-form { margin: 0 8px 8px; }
+  .add-card-input { width: 100%; padding: 6px 8px; border-radius: 4px; border: 2px solid #0052cc; outline: none; resize: none; line-height: 1.4; }
+  .add-card-actions { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+  .btn-primary { background: #0052cc; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; }
+  .btn-primary:hover { background: #0065ff; }
+  .btn-ghost { color: #5e6c84; padding: 5px 8px; border-radius: 4px; font-size: 13px; }
+  .btn-ghost:hover { background: rgba(0,0,0,.07); color: #172b4d; }
+  .btn-danger { background: #de350b; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; }
+  .btn-danger:hover { background: #ff5630; }
+
+  /* ===== Add List ===== */
+  .add-list-column { width: 272px; flex-shrink: 0; }
+  .add-list-btn { background: #e2e5ea; color: #172b4d; border-radius: 6px; padding: 10px 14px; width: 100%; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; }
+  .add-list-btn:hover { background: #cdd0d8; }
+  .add-list-form { background: #ebecf0; border-radius: 6px; padding: 8px; }
+  .add-list-input { width: 100%; padding: 6px 8px; border-radius: 4px; border: 2px solid #0052cc; outline: none; }
+  .add-list-actions { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+
+  /* ===== Dropdown Menu ===== */
+  .dropdown-overlay { position: fixed; inset: 0; z-index: 100; }
+  .dropdown-menu {
+    position: absolute; background: #fff; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    z-index: 200; min-width: 160px; padding: 4px 0; overflow: hidden;
+  }
+  .dropdown-item { padding: 8px 14px; cursor: pointer; font-size: 13px; display: block; width: 100%; text-align: left; }
+  .dropdown-item:hover { background: #f4f5f7; }
+  .dropdown-item.danger { color: #de350b; }
+  .dropdown-item.danger:hover { background: #ffebe6; }
+
+  /* ===== Modal Base ===== */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300;
+    display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px; overflow-y: auto;
+  }
+  .modal { background: #fff; border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.3); width: 100%; position: relative; }
+  .modal-close { position: absolute; top: 10px; right: 12px; font-size: 20px; color: #5e6c84; padding: 4px 8px; border-radius: 4px; line-height: 1; }
+  .modal-close:hover { background: #f4f5f7; color: #172b4d; }
+
+  /* ===== Card Detail Modal ===== */
+  #modal-card { max-width: 720px; padding: 24px; }
+  .card-modal-title-wrap { margin-bottom: 16px; padding-right: 32px; }
+  .card-modal-title { font-size: 18px; font-weight: 700; cursor: pointer; padding: 4px 6px; border-radius: 4px; min-height: 32px; word-break: break-word; }
+  .card-modal-title:hover { background: #f4f5f7; }
+  .card-modal-title-input { width: 100%; font-size: 18px; font-weight: 700; border: 2px solid #0052cc; border-radius: 4px; padding: 4px 6px; outline: none; resize: none; overflow: hidden; }
+
+  .card-modal-body { display: grid; grid-template-columns: 1fr 200px; gap: 20px; }
+  .card-modal-main {}
+  .card-modal-sidebar {}
+
+  .card-section { margin-bottom: 20px; }
+  .card-section-label { font-size: 12px; font-weight: 600; color: #5e6c84; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+
+  .label-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .label-chip { display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; cursor: default; }
+  .label-chip-del { font-size: 14px; cursor: pointer; opacity: .8; }
+  .label-chip-del:hover { opacity: 1; }
+
+  .card-desc { width: 100%; min-height: 80px; border: 2px solid transparent; border-radius: 4px; padding: 6px 8px; resize: vertical; outline: none; background: #f4f5f7; line-height: 1.5; }
+  .card-desc:focus { border-color: #0052cc; background: #fff; }
+  .card-desc::placeholder { color: #aaa; }
+
+  .checklist-block { margin-bottom: 16px; }
+  .checklist-block-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .checklist-block-title { font-size: 14px; font-weight: 600; flex: 1; cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+  .checklist-block-title:hover { background: #f4f5f7; }
+  .checklist-block-title-input { flex: 1; font-size: 14px; font-weight: 600; border: 2px solid #0052cc; border-radius: 3px; padding: 2px 4px; outline: none; }
+  .checklist-progress { font-size: 12px; color: #5e6c84; }
+  .progress-bar-wrap { background: #dfe1e6; border-radius: 4px; height: 6px; margin-bottom: 8px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: #00875a; border-radius: 4px; transition: width .2s; }
+  .progress-bar-fill.complete { background: #00875a; }
+  .checklist-item { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; }
+  .checklist-item input[type=checkbox] { width: 16px; height: 16px; margin-top: 2px; cursor: pointer; flex-shrink: 0; }
+  .checklist-item-text { flex: 1; font-size: 13px; line-height: 1.5; cursor: pointer; padding: 1px 4px; border-radius: 3px; word-break: break-word; }
+  .checklist-item-text:hover { background: #f4f5f7; }
+  .checklist-item-text.completed { text-decoration: line-through; color: #5e6c84; }
+  .checklist-item-text-input { flex: 1; font-size: 13px; border: 2px solid #0052cc; border-radius: 3px; padding: 1px 4px; outline: none; }
+  .checklist-item-del { color: #aaa; font-size: 16px; padding: 0 4px; opacity: 0; }
+  .checklist-item:hover .checklist-item-del { opacity: 1; }
+  .checklist-item-del:hover { color: #de350b; }
+
+  .add-checklist-item { margin-top: 6px; }
+  .add-checklist-item-btn { font-size: 13px; color: #5e6c84; padding: 4px 8px; border-radius: 4px; }
+  .add-checklist-item-btn:hover { background: #f4f5f7; color: #172b4d; }
+
+  /* Sidebar */
+  .sidebar-section { margin-bottom: 12px; }
+  .sidebar-label { font-size: 11px; font-weight: 600; color: #5e6c84; margin-bottom: 6px; text-transform: uppercase; }
+  .sidebar-btn { width: 100%; text-align: left; padding: 6px 10px; border-radius: 4px; background: #f4f5f7; font-size: 13px; color: #172b4d; display: flex; align-items: center; gap: 6px; }
+  .sidebar-btn:hover { background: #e2e4e9; }
+  .due-display { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .due-value { font-size: 13px; }
+  .due-value.overdue { color: #bf2600; font-weight: 600; }
+  .due-value.today { color: #ff8b00; font-weight: 600; }
+  .due-clear { font-size: 12px; color: #5e6c84; padding: 2px 6px; border-radius: 3px; }
+  .due-clear:hover { background: #f4f5f7; color: #de350b; }
+
+  .card-modal-footer { display: flex; align-items: center; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #dfe1e6; }
+
+  /* ===== Label Management Modal ===== */
+  #modal-labels { max-width: 400px; padding: 24px; }
+  #modal-labels h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .label-list-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f4f5f7; }
+  .label-color-dot { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+  .label-list-name { flex: 1; font-size: 13px; word-break: break-all; }
+  .label-list-name-input { flex: 1; font-size: 13px; border: 2px solid #0052cc; border-radius: 3px; padding: 3px 6px; outline: none; }
+  .label-list-btn { font-size: 12px; padding: 3px 8px; border-radius: 3px; color: #5e6c84; }
+  .label-list-btn:hover { background: #f4f5f7; color: #172b4d; }
+  .label-list-btn.danger:hover { background: #ffebe6; color: #de350b; }
+  .add-label-form { margin-top: 16px; }
+  .add-label-form h3 { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #5e6c84; }
+  .color-palette { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; transition: transform .1s; border: 3px solid transparent; }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: #172b4d; transform: scale(1.1); }
+  .form-field { margin-bottom: 10px; }
+  .form-field label { font-size: 12px; font-weight: 600; color: #5e6c84; display: block; margin-bottom: 4px; }
+  .form-input { width: 100%; padding: 6px 8px; border: 2px solid #dfe1e6; border-radius: 4px; outline: none; font-size: 13px; }
+  .form-input:focus { border-color: #0052cc; }
+
+  /* ===== Dialog (input / confirm) ===== */
+  #modal-dialog { max-width: 360px; padding: 24px; }
+  #modal-dialog h2 { font-size: 15px; font-weight: 700; margin-bottom: 16px; padding-right: 28px; }
+  #modal-confirm { max-width: 380px; padding: 24px; }
+  #modal-confirm h2 { font-size: 15px; font-weight: 700; margin-bottom: 12px; padding-right: 28px; }
+  #modal-confirm p { font-size: 13px; color: #5e6c84; margin-bottom: 6px; }
+  .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* ===== Date Picker Popover ===== */
+  .date-popover {
+    position: fixed; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    z-index: 400; padding: 16px; min-width: 220px;
+  }
+  .date-popover input[type=date] { width: 100%; padding: 6px 8px; border: 2px solid #dfe1e6; border-radius: 4px; font-size: 13px; outline: none; }
+  .date-popover input[type=date]:focus { border-color: #0052cc; }
+  .date-popover-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+  /* ===== Label Popover ===== */
+  .label-popover {
+    position: fixed; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    z-index: 400; padding: 12px; min-width: 220px;
+  }
+  .label-popover h3 { font-size: 12px; font-weight: 600; color: #5e6c84; margin-bottom: 8px; text-transform: uppercase; }
+  .label-popover-item { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 4px; cursor: pointer; }
+  .label-popover-item:hover { background: #f4f5f7; }
+  .label-popover-dot { width: 22px; height: 22px; border-radius: 4px; flex-shrink: 0; }
+  .label-popover-check { font-size: 14px; margin-left: auto; color: #0052cc; }
+  .label-popover-name { font-size: 13px; flex: 1; }
+  .label-popover-manage { font-size: 12px; color: #0052cc; padding: 6px 6px 2px; cursor: pointer; display: block; border-top: 1px solid #f4f5f7; margin-top: 4px; }
+  .label-popover-manage:hover { text-decoration: underline; }
+
+  /* ===== Priority Badge ===== */
+  .priority-badge { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+  .priority-badge.high { background: #ffebe6; color: #bf2600; }
+  .priority-badge.medium { background: #fffae6; color: #ff8b00; }
+  .priority-badge.low { background: #e3fcef; color: #006644; }
+
+  /* ===== Sort Bar ===== */
+  .list-sort-bar { padding: 0 8px 6px; display: flex; gap: 4px; }
+  .sort-btn { font-size: 11px; color: #5e6c84; padding: 2px 7px; border-radius: 3px; background: rgba(0,0,0,.06); }
+  .sort-btn:hover { background: rgba(0,0,0,.12); }
+  .sort-btn.active { background: #0052cc; color: #fff; }
+
+  /* ===== Priority Select ===== */
+  .priority-select { padding: 5px 8px; border: 2px solid #dfe1e6; border-radius: 4px; font-size: 13px; outline: none; background: #fff; cursor: pointer; }
+  .priority-select:focus { border-color: #0052cc; }
+  .add-card-field { margin-bottom: 6px; }
+  .add-card-field label { font-size: 11px; font-weight: 600; color: #5e6c84; display: block; margin-bottom: 2px; }
+
+  /* ===== Utilities ===== */
+  .hidden { display: none !important; }
+  .flex { display: flex; }
+  .gap-2 { gap: 8px; }
+</style>
+</head>
+<body>
+
+<!-- App Header -->
+<header class="app-header">
+  <h1>TaskManagementForAI</h1>
+</header>
+
+<!-- View: Board List -->
+<main id="view-boards" class="view active">
+  <div class="boards-title">あなたのボード</div>
+  <div class="boards-grid" id="boards-grid">
+    <!-- boards rendered here -->
+  </div>
+  <div id="boards-empty" class="boards-empty hidden">
+    <p>ボードがありません</p>
+    <button class="btn-primary" onclick="openDialog('board-create')">+ 新規ボードを作成</button>
+  </div>
+</main>
+
+<!-- View: Kanban -->
+<main id="view-kanban" class="view">
+  <div class="kanban-header">
+    <button class="kanban-header-back" onclick="goToBoardList()">← 一覧へ</button>
+    <span id="kanban-title" class="kanban-header-title" onclick="startEditBoardTitle(this)"></span>
+    <input id="kanban-title-input" class="kanban-header-title-input hidden" type="text" onblur="commitBoardTitleEdit()" onkeydown="handleBoardTitleKey(event)">
+    <button class="kanban-header-btn" onclick="openLabelModal()">ラベル管理</button>
+  </div>
+  <div class="kanban-body" id="kanban-body">
+    <!-- lists rendered here -->
+  </div>
+</main>
+
+<!-- ===== Modals ===== -->
+
+<!-- Card Detail Modal -->
+<div class="modal-backdrop hidden" id="modal-card-backdrop" onclick="closeModalByBackdrop(event,'modal-card-backdrop')">
+  <div class="modal" id="modal-card">
+    <button class="modal-close" onclick="closeCardModal()">×</button>
+    <div class="card-modal-title-wrap">
+      <div id="card-modal-title-display" class="card-modal-title" onclick="startEditCardTitle()"></div>
+      <textarea id="card-modal-title-input" class="card-modal-title-input hidden" rows="2"
+        onblur="commitCardTitleEdit()" onkeydown="handleCardTitleKey(event)"></textarea>
+    </div>
+    <div class="card-modal-body">
+      <div class="card-modal-main">
+        <!-- Labels -->
+        <div class="card-section">
+          <div class="card-section-label">ラベル</div>
+          <div id="card-label-chips" class="label-chips"></div>
+          <button class="btn-ghost" style="font-size:12px; padding:3px 8px;" onclick="openLabelPopover(event)">+ ラベル付与</button>
+        </div>
+        <!-- Description -->
+        <div class="card-section">
+          <div class="card-section-label">説明</div>
+          <textarea id="card-desc" class="card-desc" rows="4" placeholder="説明を追加..."></textarea>
+        </div>
+        <!-- Checklists -->
+        <div id="card-checklists"></div>
+        <button class="btn-ghost" style="margin-top:4px;" onclick="openDialog('checklist-create')">+ チェックリスト追加</button>
+      </div>
+      <div class="card-modal-sidebar">
+        <!-- Priority -->
+        <div class="sidebar-section">
+          <div class="sidebar-label">優先度</div>
+          <div id="card-priority-display"></div>
+        </div>
+        <!-- Due Date -->
+        <div class="sidebar-section">
+          <div class="sidebar-label">期日</div>
+          <div id="card-due-display" class="due-display">
+            <button class="sidebar-btn" onclick="openDatePicker(event)">📅 期日を設定</button>
+          </div>
+        </div>
+        <!-- Delete -->
+        <div class="sidebar-section" style="margin-top: auto; padding-top: 12px; border-top: 1px solid #dfe1e6;">
+          <button class="btn-danger" style="width:100%;" onclick="confirmDeleteCard()">カードを削除</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-modal-footer">
+      <button class="btn-primary" id="card-save-btn" onclick="saveCardDraft()">保存</button>
+      <button class="btn-ghost" onclick="closeCardModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Label Management Modal -->
+<div class="modal-backdrop hidden" id="modal-labels-backdrop" onclick="closeModalByBackdrop(event,'modal-labels-backdrop')">
+  <div class="modal" id="modal-labels">
+    <button class="modal-close" onclick="closeLabelModal()">×</button>
+    <h2>ラベル管理</h2>
+    <div id="label-list"></div>
+    <div class="add-label-form">
+      <h3>+ ラベル追加</h3>
+      <div class="form-field">
+        <label>名前</label>
+        <input type="text" id="new-label-name" class="form-input" placeholder="ラベル名">
+      </div>
+      <div class="form-field">
+        <label>色</label>
+        <div class="color-palette" id="color-palette"></div>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn-ghost" onclick="resetAddLabelForm()">キャンセル</button>
+        <button class="btn-primary" id="add-label-btn" onclick="addLabel()" disabled>追加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Input Dialog -->
+<div class="modal-backdrop hidden" id="modal-dialog-backdrop">
+  <div class="modal" id="modal-dialog">
+    <button class="modal-close" onclick="closeDialog()">×</button>
+    <h2 id="dialog-title"></h2>
+    <input type="text" id="dialog-input" class="form-input" placeholder=""
+      oninput="onDialogInput()" onkeydown="handleDialogKey(event)">
+    <div class="dialog-actions">
+      <button class="btn-ghost" onclick="closeDialog()">キャンセル</button>
+      <button class="btn-primary" id="dialog-confirm-btn" onclick="confirmDialog()" disabled></button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Dialog -->
+<div class="modal-backdrop hidden" id="modal-confirm-backdrop">
+  <div class="modal" id="modal-confirm">
+    <button class="modal-close" onclick="closeConfirm()">×</button>
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <p id="confirm-sub" style="display:none" class="hidden"></p>
+    <div class="dialog-actions">
+      <button class="btn-ghost" onclick="closeConfirm()">キャンセル</button>
+      <button class="btn-danger" id="confirm-delete-btn" onclick="executeConfirm()">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Date Picker Popover -->
+<div id="date-popover" class="date-popover hidden">
+  <input type="date" id="date-input" oninput="previewDate()">
+  <div class="date-popover-actions">
+    <button class="btn-ghost" onclick="closeDatePicker()">キャンセル</button>
+    <button class="btn-primary" onclick="saveDueDate()">設定</button>
+  </div>
+</div>
+
+<!-- Label Popover -->
+<div id="label-popover" class="label-popover hidden">
+  <h3>ラベル</h3>
+  <div id="label-popover-list"></div>
+  <a class="label-popover-manage" onclick="closeLabelPopover(); openLabelModal();">ラベル管理を開く →</a>
+</div>
+
+<!-- Dropdown overlay -->
+<div class="dropdown-overlay hidden" id="dropdown-overlay" onclick="closeDropdown()"></div>
+<div id="dropdown-menu" class="dropdown-menu hidden"></div>
+
+<script>
+// ===== State =====
+const COLORS = ['#eb5a46','#f2a623','#61bd4f','#00c2e0','#0079bf','#c377e0','#ff78cb','#b3bac5','#344563','#00897b'];
+const STEP = 1024;
+const PRIORITY_LABELS = { high: '高', medium: '中', low: '低' };
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 };
+let listSortMap = {};
+let cardDraft = null;
+let state = loadState();
+let currentBoardId = null;
+let currentCardId = null;
+let dialogMode = null;
+let confirmCallback = null;
+let dragCard = null, dragList = null;
+let dropdownTarget = null;
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('tma_state');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return { boards: [], lists: [], cards: [], labels: [], card_labels: [], checklists: [], checklist_items: [] };
+}
+function saveState() {
+  localStorage.setItem('tma_state', JSON.stringify(state));
+}
+function uid() {
+  return Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+}
+function now() { return new Date().toISOString(); }
+
+// ===== Board List Screen =====
+function renderBoards() {
+  const grid = document.getElementById('boards-grid');
+  const empty = document.getElementById('boards-empty');
+  grid.innerHTML = '';
+  if (state.boards.length === 0) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  const bgColors = ['#0079bf','#d29034','#519839','#b04632','#89609e','#cd5a91','#4bbf6b','#00aecc','#838c91'];
+  state.boards.forEach((b, i) => {
+    const color = bgColors[i % bgColors.length];
+    const card = document.createElement('div');
+    card.className = 'board-card';
+    card.style.background = color;
+    card.innerHTML = `
+      <div class="board-card-title">${esc(b.title)}</div>
+      <button class="board-card-menu" onclick="event.stopPropagation(); openBoardMenu(event,'${b.id}')">···</button>
+    `;
+    card.onclick = () => openBoard(b.id);
+    grid.appendChild(card);
+  });
+  const newBtn = document.createElement('div');
+  newBtn.className = 'board-card-new';
+  newBtn.textContent = '+ 新規ボード';
+  newBtn.onclick = () => openDialog('board-create');
+  grid.appendChild(newBtn);
+}
+
+function openBoardMenu(e, boardId) {
+  e.stopPropagation();
+  showDropdown(e, [
+    { label: '改名', action: () => openDialog('board-rename', boardId) },
+    { label: '削除', action: () => confirmDeleteBoardById(boardId), danger: true },
+  ]);
+}
+
+// ===== Board CRUD =====
+function createBoard(title) {
+  const b = { id: uid(), title, created_at: now(), updated_at: now() };
+  const pos = state.boards.length ? Math.max(...state.boards.map(x => x._pos || 0)) + STEP : STEP;
+  b._pos = pos;
+  state.boards.push(b);
+  saveState();
+  renderBoards();
+}
+function renameBoard(boardId, title) {
+  const b = state.boards.find(x => x.id === boardId);
+  if (!b) return;
+  b.title = title; b.updated_at = now();
+  saveState();
+  if (currentBoardId === boardId) document.getElementById('kanban-title').textContent = title;
+  renderBoards();
+}
+function deleteBoard(boardId) {
+  state.boards = state.boards.filter(x => x.id !== boardId);
+  const listIds = state.lists.filter(x => x.board_id === boardId).map(x => x.id);
+  const cardIds = state.cards.filter(x => listIds.includes(x.list_id)).map(x => x.id);
+  const clIds = state.checklists.filter(x => cardIds.includes(x.card_id)).map(x => x.id);
+  state.checklist_items = state.checklist_items.filter(x => !clIds.includes(x.checklist_id));
+  state.checklists = state.checklists.filter(x => !cardIds.includes(x.card_id));
+  state.card_labels = state.card_labels.filter(x => !cardIds.includes(x.card_id));
+  state.cards = state.cards.filter(x => !listIds.includes(x.list_id));
+  state.lists = state.lists.filter(x => x.board_id !== boardId);
+  state.labels = state.labels.filter(x => x.board_id !== boardId);
+  saveState();
+  if (currentBoardId === boardId) goToBoardList();
+  else renderBoards();
+}
+
+// ===== Navigation =====
+function openBoard(boardId) {
+  currentBoardId = boardId;
+  const b = state.boards.find(x => x.id === boardId);
+  document.getElementById('kanban-title').textContent = b.title;
+  document.getElementById('view-boards').classList.remove('active');
+  document.getElementById('view-kanban').classList.add('active');
+  renderKanban();
+}
+function goToBoardList() {
+  currentBoardId = null;
+  document.getElementById('view-kanban').classList.remove('active');
+  document.getElementById('view-boards').classList.add('active');
+  renderBoards();
+}
+
+// ===== Kanban =====
+function renderKanban() {
+  const body = document.getElementById('kanban-body');
+  body.innerHTML = '';
+  const lists = state.lists.filter(x => x.board_id === currentBoardId).sort((a,b) => a.position - b.position);
+  lists.forEach(l => body.appendChild(buildListEl(l)));
+  // Add list
+  const addCol = document.createElement('div');
+  addCol.className = 'add-list-column';
+  addCol.id = 'add-list-col';
+  addCol.innerHTML = `
+    <button class="add-list-btn" id="add-list-btn" onclick="showAddListForm()">+ リスト追加</button>
+    <div class="add-list-form hidden" id="add-list-form">
+      <input class="add-list-input" id="add-list-input" type="text" placeholder="例：To Do" onkeydown="handleAddListKey(event)">
+      <div class="add-list-actions">
+        <button class="btn-primary" onclick="commitAddList()">追加</button>
+        <button class="btn-ghost" onclick="cancelAddList()">キャンセル</button>
+      </div>
+    </div>
+  `;
+  body.appendChild(addCol);
+}
+
+function buildListEl(list) {
+  const col = document.createElement('div');
+  col.className = 'list-column';
+  col.dataset.listId = list.id;
+  const sort = listSortMap[list.id] || 'position';
+  col.innerHTML = `
+    <div class="list-header" draggable="true">
+      <span class="list-title" data-list-id="${list.id}" ondblclick="startEditListTitle(this,'${list.id}')">${esc(list.title)}</span>
+      <input class="list-title-input hidden" data-list-id="${list.id}" type="text"
+        onblur="commitListTitleEdit('${list.id}',this)" onkeydown="handleListTitleKey(event,'${list.id}',this)">
+      <button class="list-menu-btn" onclick="openListMenu(event,'${list.id}')">···</button>
+    </div>
+    <div class="list-sort-bar">
+      <button class="sort-btn${sort==='priority'?' active':''}" onclick="setListSort('${list.id}','priority')">優先度順</button>
+      <button class="sort-btn${sort==='due'?' active':''}" onclick="setListSort('${list.id}','due')">期限順</button>
+    </div>
+    <div class="card-list" data-list-id="${list.id}"></div>
+    <button class="add-card-btn" id="add-card-btn-${list.id}" onclick="showAddCardForm('${list.id}')">+ カードを追加</button>
+    <div class="add-card-form hidden" id="add-card-form-${list.id}">
+      <div class="add-card-field">
+        <label>タイトル</label>
+        <textarea class="add-card-input" id="add-card-input-${list.id}" rows="2" placeholder="例：UIデザインのレビュー"
+          onkeydown="handleAddCardKey(event,'${list.id}')"></textarea>
+      </div>
+      <div class="add-card-field" style="display:flex; gap:8px;">
+        <div style="flex:1;">
+          <label>優先度</label>
+          <select class="priority-select" id="add-card-priority-${list.id}" style="width:100%;">
+            <option value="medium" selected>中</option>
+            <option value="high">高</option>
+            <option value="low">低</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label>期限日</label>
+          <input type="date" class="form-input" id="add-card-due-${list.id}" style="font-size:12px; padding:4px 6px;">
+        </div>
+      </div>
+      <div class="add-card-actions">
+        <button class="btn-primary" onclick="commitAddCard('${list.id}')">保存</button>
+        <button class="btn-ghost" onclick="cancelAddCard('${list.id}')">キャンセル</button>
+      </div>
+    </div>
+  `;
+  // Render cards with sort
+  const cardList = col.querySelector('.card-list');
+  let cards = state.cards.filter(x => x.list_id === list.id).sort((a,b) => a.position - b.position);
+  if (sort === 'priority') {
+    cards = [...cards].sort((a,b) => (PRIORITY_ORDER[a.priority||'medium']) - (PRIORITY_ORDER[b.priority||'medium']));
+  } else if (sort === 'due') {
+    cards = [...cards].sort((a,b) => {
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return a.due_date.localeCompare(b.due_date);
+    });
+  }
+  cards.forEach(c => cardList.appendChild(buildCardEl(c)));
+  // List drag
+  const header = col.querySelector('.list-header');
+  header.addEventListener('dragstart', e => { dragList = list.id; col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+  header.addEventListener('dragend', () => { dragList = null; col.classList.remove('dragging'); cleanDragOver(); });
+  col.addEventListener('dragover', e => {
+    if (dragList && dragList !== list.id) {
+      e.preventDefault(); e.stopPropagation(); cleanDragOver(); col.classList.add('drag-over');
+    } else if (dragCard) {
+      e.preventDefault(); e.stopPropagation();
+      const cl = col.querySelector('.card-list');
+      cleanPlaceholders();
+      const ph = document.createElement('div'); ph.className = 'card-placeholder';
+      const after = getDragAfterElement(cl, e.clientY);
+      if (!after) cl.appendChild(ph); else cl.insertBefore(ph, after);
+    }
+  });
+  col.addEventListener('drop', e => {
+    if (dragList && dragList !== list.id) {
+      e.preventDefault(); e.stopPropagation(); dropListOnto(list.id);
+    } else if (dragCard) {
+      e.preventDefault(); e.stopPropagation();
+      const cl = col.querySelector('.card-list');
+      const ph = cl.querySelector('.card-placeholder');
+      const children = [...cl.children].filter(x => !x.classList.contains('card-placeholder') && !x.classList.contains('dragging'));
+      let insertBefore = null;
+      if (ph) { const idx = [...cl.children].indexOf(ph); insertBefore = children[idx] || null; }
+      cleanPlaceholders();
+      dropCardOnto(list.id, insertBefore ? insertBefore.dataset.cardId : null);
+    }
+  });
+  return col;
+}
+
+function buildCardEl(card) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.dataset.cardId = card.id;
+  div.draggable = true;
+  const labels = state.card_labels.filter(x => x.card_id === card.id)
+    .map(x => state.labels.find(l => l.id === x.label_id)).filter(Boolean);
+  const labelsHtml = labels.length
+    ? `<div class="card-labels">${labels.map(l => `<div class="card-label-chip" style="background:${l.color}">${esc(l.name)}</div>`).join('')}</div>` : '';
+  let dueHtml = '';
+  if (card.due_date) {
+    const cls = dueDateClass(card.due_date);
+    dueHtml = `<span class="card-due ${cls}">📅 ${formatDate(card.due_date)}</span>`;
+  }
+  const cls = state.checklists.filter(x => x.card_id === card.id);
+  let clHtml = '';
+  if (cls.length) {
+    const allItems = state.checklist_items.filter(x => cls.some(c => c.id === x.checklist_id));
+    const done = allItems.filter(x => x.is_completed).length;
+    clHtml = `<span class="card-checklist-badge">☑ ${done}/${allItems.length}</span>`;
+  }
+  const p = card.priority || 'medium';
+  const priorityHtml = `<span class="priority-badge ${p}">${PRIORITY_LABELS[p]}</span>`;
+  div.innerHTML = `${labelsHtml}<div class="card-title">${esc(card.title)}</div>`;
+  div.innerHTML += `<div class="card-meta">${priorityHtml}${dueHtml}${clHtml}</div>`;
+  div.onclick = () => openCardModal(card.id);
+  div.addEventListener('dragstart', e => { dragCard = card.id; div.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+  div.addEventListener('dragend', () => { dragCard = null; div.classList.remove('dragging'); cleanPlaceholders(); });
+  return div;
+}
+
+function cleanDragOver() {
+  document.querySelectorAll('.list-column').forEach(el => el.classList.remove('drag-over'));
+}
+function cleanPlaceholders() {
+  document.querySelectorAll('.card-placeholder').forEach(el => el.remove());
+}
+
+// Card D&D — column-level handlers do the real work; document is fallback cleanup only
+document.addEventListener('dragover', e => { if (dragCard) e.preventDefault(); });
+document.addEventListener('drop', e => { if (dragCard) cleanPlaceholders(); });
+
+function getDragAfterElement(container, y) {
+  const els = [...container.querySelectorAll('.card:not(.dragging):not(.card-placeholder)')];
+  return els.reduce((closest, el) => {
+    const box = el.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    return offset < 0 && offset > closest.offset ? { offset, el } : closest;
+  }, { offset: Number.NEGATIVE_INFINITY }).el;
+}
+
+function dropCardOnto(toListId, beforeCardId) {
+  const card = state.cards.find(x => x.id === dragCard);
+  if (!card) return;
+  card.list_id = toListId;
+  const siblings = state.cards.filter(x => x.list_id === toListId && x.id !== dragCard).sort((a,b) => a.position - b.position);
+  if (!beforeCardId) {
+    card.position = siblings.length ? siblings[siblings.length-1].position + STEP : STEP;
+  } else {
+    const idx = siblings.findIndex(x => x.id === beforeCardId);
+    const prev = siblings[idx-1];
+    const next = siblings[idx];
+    card.position = prev && next ? (prev.position + next.position) / 2 : (next ? next.position / 2 : STEP);
+  }
+  saveState(); renderKanban();
+}
+
+function dropListOnto(toListId) {
+  const fromList = state.lists.find(x => x.id === dragList);
+  const toList = state.lists.find(x => x.id === toListId);
+  if (!fromList || !toList) return;
+  const lists = state.lists.filter(x => x.board_id === currentBoardId).sort((a,b) => a.position - b.position);
+  const toIdx = lists.findIndex(x => x.id === toListId);
+  const prev = lists[toIdx-1];
+  const next = lists[toIdx];
+  fromList.position = prev && next ? (prev.position + next.position) / 2 : (prev ? prev.position + STEP : toList.position / 2);
+  saveState(); renderKanban();
+}
+
+// ===== List CRUD =====
+function showAddListForm() {
+  document.getElementById('add-list-btn').classList.add('hidden');
+  document.getElementById('add-list-form').classList.remove('hidden');
+  document.getElementById('add-list-input').value = '';
+  document.getElementById('add-list-input').focus();
+}
+function cancelAddList() {
+  document.getElementById('add-list-btn').classList.remove('hidden');
+  document.getElementById('add-list-form').classList.add('hidden');
+}
+function handleAddListKey(e) {
+  if (e.key === 'Enter') { e.preventDefault(); commitAddList(); }
+  if (e.key === 'Escape') cancelAddList();
+}
+function commitAddList() {
+  const val = document.getElementById('add-list-input').value.trim();
+  if (!val) return;
+  const lists = state.lists.filter(x => x.board_id === currentBoardId);
+  const pos = lists.length ? Math.max(...lists.map(x => x.position)) + STEP : STEP;
+  state.lists.push({ id: uid(), board_id: currentBoardId, title: val, position: pos, created_at: now(), updated_at: now() });
+  saveState(); renderKanban();
+}
+function openListMenu(e, listId) {
+  e.stopPropagation();
+  showDropdown(e, [
+    { label: 'リストの名前を変更', action: () => openDialog('list-rename', listId) },
+    { label: 'リストを削除', action: () => confirmDeleteList(listId), danger: true },
+  ]);
+}
+function renameList(listId, title) {
+  const l = state.lists.find(x => x.id === listId);
+  if (!l) return;
+  l.title = title; l.updated_at = now();
+  saveState(); renderKanban();
+}
+function deleteList(listId) {
+  const cardIds = state.cards.filter(x => x.list_id === listId).map(x => x.id);
+  const clIds = state.checklists.filter(x => cardIds.includes(x.card_id)).map(x => x.id);
+  state.checklist_items = state.checklist_items.filter(x => !clIds.includes(x.checklist_id));
+  state.checklists = state.checklists.filter(x => !cardIds.includes(x.card_id));
+  state.card_labels = state.card_labels.filter(x => !cardIds.includes(x.card_id));
+  state.cards = state.cards.filter(x => x.list_id !== listId);
+  state.lists = state.lists.filter(x => x.id !== listId);
+  saveState(); renderKanban();
+}
+
+// Inline list title edit
+function startEditListTitle(el, listId) {
+  const col = el.closest('.list-column');
+  const inp = col.querySelector('.list-title-input');
+  inp.value = state.lists.find(x => x.id === listId).title;
+  el.classList.add('hidden'); inp.classList.remove('hidden'); inp.focus(); inp.select();
+}
+function commitListTitleEdit(listId, inp) {
+  const val = inp.value.trim();
+  const l = state.lists.find(x => x.id === listId);
+  if (val) { l.title = val; l.updated_at = now(); saveState(); }
+  const col = inp.closest('.list-column');
+  col.querySelector('.list-title').textContent = l.title;
+  inp.classList.add('hidden'); col.querySelector('.list-title').classList.remove('hidden');
+}
+function handleListTitleKey(e, listId, inp) {
+  if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+  if (e.key === 'Escape') {
+    const l = state.lists.find(x => x.id === listId);
+    inp.value = l.title; inp.blur();
+  }
+}
+
+// ===== Card CRUD =====
+function showAddCardForm(listId) {
+  document.getElementById(`add-card-btn-${listId}`).classList.add('hidden');
+  document.getElementById(`add-card-form-${listId}`).classList.remove('hidden');
+  const inp = document.getElementById(`add-card-input-${listId}`);
+  inp.value = '';
+  const pri = document.getElementById(`add-card-priority-${listId}`);
+  if (pri) pri.value = 'medium';
+  const due = document.getElementById(`add-card-due-${listId}`);
+  if (due) due.value = '';
+  inp.focus();
+}
+function cancelAddCard(listId) {
+  document.getElementById(`add-card-btn-${listId}`).classList.remove('hidden');
+  document.getElementById(`add-card-form-${listId}`).classList.add('hidden');
+}
+function handleAddCardKey(e, listId) {
+  if (e.key === 'Enter') { e.preventDefault(); commitAddCard(listId); }
+  if (e.key === 'Escape') cancelAddCard(listId);
+}
+function commitAddCard(listId) {
+  const val = document.getElementById(`add-card-input-${listId}`).value.trim();
+  if (!val) return;
+  const priority = document.getElementById(`add-card-priority-${listId}`)?.value || 'medium';
+  const due = document.getElementById(`add-card-due-${listId}`)?.value || null;
+  const cards = state.cards.filter(x => x.list_id === listId);
+  const pos = cards.length ? Math.max(...cards.map(x => x.position)) + STEP : STEP;
+  state.cards.push({ id: uid(), list_id: listId, title: val, description: '', due_date: due, priority, position: pos, created_at: now(), updated_at: now() });
+  saveState(); renderKanban();
+  showAddCardForm(listId);
+}
+function deleteCard(cardId) {
+  const clIds = state.checklists.filter(x => x.card_id === cardId).map(x => x.id);
+  state.checklist_items = state.checklist_items.filter(x => !clIds.includes(x.checklist_id));
+  state.checklists = state.checklists.filter(x => x.card_id !== cardId);
+  state.card_labels = state.card_labels.filter(x => x.card_id !== cardId);
+  state.cards = state.cards.filter(x => x.id !== cardId);
+  saveState(); closeCardModal(); renderKanban();
+}
+
+// ===== Card Modal =====
+function openCardModal(cardId) {
+  currentCardId = cardId;
+  const card = state.cards.find(x => x.id === cardId);
+  cardDraft = { title: card.title, description: card.description || '', priority: card.priority || 'medium', due_date: card.due_date };
+  renderCardModal();
+  document.getElementById('modal-card-backdrop').classList.remove('hidden');
+}
+function closeCardModal() {
+  document.getElementById('modal-card-backdrop').classList.add('hidden');
+  currentCardId = null;
+  cardDraft = null;
+  if (currentBoardId) renderKanban();
+}
+function renderCardModal() {
+  const card = state.cards.find(x => x.id === currentCardId);
+  if (!card) return;
+  // Title
+  document.getElementById('card-modal-title-display').textContent = card.title;
+  document.getElementById('card-modal-title-display').classList.remove('hidden');
+  document.getElementById('card-modal-title-input').classList.add('hidden');
+  // Labels
+  renderCardLabelChips();
+  // Description
+  document.getElementById('card-desc').value = cardDraft.description;
+  // Priority
+  renderPriority();
+  // Due date
+  renderDueDate();
+  // Checklists
+  renderCardChecklists();
+}
+function renderCardLabelChips() {
+  const card = state.cards.find(x => x.id === currentCardId);
+  const container = document.getElementById('card-label-chips');
+  const assigned = state.card_labels.filter(x => x.card_id === currentCardId)
+    .map(x => state.labels.find(l => l.id === x.label_id)).filter(Boolean);
+  container.innerHTML = assigned.map(l =>
+    `<span class="label-chip" style="background:${l.color}">
+      ${esc(l.name)}
+      <span class="label-chip-del" onclick="removeCardLabel('${l.id}')">×</span>
+    </span>`
+  ).join('');
+}
+function renderPriority() {
+  if (!cardDraft) return;
+  const p = cardDraft.priority;
+  const div = document.getElementById('card-priority-display');
+  div.innerHTML = `
+    <select class="priority-select" style="width:100%;" onchange="setCardPriority(this.value)">
+      <option value="high"${p==='high'?' selected':''}>🔴 高</option>
+      <option value="medium"${p==='medium'?' selected':''}>🟡 中</option>
+      <option value="low"${p==='low'?' selected':''}>🟢 低</option>
+    </select>
+  `;
+}
+function setCardPriority(priority) {
+  if (cardDraft) cardDraft.priority = priority;
+}
+function setListSort(listId, sort) {
+  listSortMap[listId] = sort;
+  renderKanban();
+}
+function renderDueDate() {
+  if (!cardDraft) return;
+  const div = document.getElementById('card-due-display');
+  const d = cardDraft.due_date;
+  if (!d) {
+    div.innerHTML = `<button class="sidebar-btn" onclick="openDatePicker(event)">📅 期日を設定</button>`;
+  } else {
+    const cls = dueDateClass(d);
+    div.innerHTML = `
+      <span class="due-value ${cls}" style="cursor:pointer;" onclick="openDatePicker(event)">📅 ${d}</span>
+      <button class="due-clear" onclick="clearDueDate()">解除</button>
+    `;
+  }
+}
+function renderCardChecklists() {
+  const container = document.getElementById('card-checklists');
+  container.innerHTML = '';
+  const cls = state.checklists.filter(x => x.card_id === currentCardId).sort((a,b) => a.position - b.position);
+  cls.forEach(cl => container.appendChild(buildChecklistBlock(cl)));
+}
+function buildChecklistBlock(cl) {
+  const items = state.checklist_items.filter(x => x.checklist_id === cl.id).sort((a,b) => a.position - b.position);
+  const total = items.length, done = items.filter(x => x.is_completed).length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const div = document.createElement('div');
+  div.className = 'checklist-block';
+  div.dataset.clId = cl.id;
+  div.innerHTML = `
+    <div class="checklist-block-header">
+      <span class="checklist-block-title" ondblclick="startEditCLTitle(this,'${cl.id}')" title="ダブルクリックで改名">${esc(cl.title)}</span>
+      <span class="checklist-progress">${done}/${total} (${pct}%)</span>
+      <button class="btn-ghost" style="font-size:11px;padding:2px 6px;" onclick="confirmDeleteChecklist('${cl.id}')">···</button>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill${pct===100?' complete':''}" style="width:${pct}%"></div></div>
+    <div class="checklist-items" data-cl-id="${cl.id}">
+      ${items.map(it => buildChecklistItemHtml(it)).join('')}
+    </div>
+    <div class="add-checklist-item">
+      <button class="add-checklist-item-btn" onclick="showAddItemForm('${cl.id}')">+ 項目を追加</button>
+      <div class="add-card-form hidden" id="add-item-form-${cl.id}">
+        <input class="form-input" id="add-item-input-${cl.id}" type="text" placeholder="項目を入力"
+          onkeydown="handleAddItemKey(event,'${cl.id}')">
+        <div class="add-card-actions" style="margin-top:6px;">
+          <button class="btn-primary" onclick="commitAddItem('${cl.id}')">追加</button>
+          <button class="btn-ghost" onclick="cancelAddItem('${cl.id}')">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  `;
+  return div;
+}
+function buildChecklistItemHtml(it) {
+  return `
+    <div class="checklist-item" data-item-id="${it.id}">
+      <input type="checkbox" ${it.is_completed?'checked':''} onchange="toggleItem('${it.id}')">
+      <span class="checklist-item-text${it.is_completed?' completed':''}" ondblclick="startEditItemText(this,'${it.id}')">${esc(it.text)}</span>
+      <button class="checklist-item-del" onclick="deleteItem('${it.id}')">×</button>
+    </div>
+  `;
+}
+
+// ===== Checklist CRUD =====
+function createChecklist(title) {
+  const cls = state.checklists.filter(x => x.card_id === currentCardId);
+  const pos = cls.length ? Math.max(...cls.map(x => x.position)) + STEP : STEP;
+  state.checklists.push({ id: uid(), card_id: currentCardId, title, position: pos, created_at: now(), updated_at: now() });
+  saveState(); renderCardChecklists();
+}
+function deleteChecklist(clId) {
+  state.checklist_items = state.checklist_items.filter(x => x.checklist_id !== clId);
+  state.checklists = state.checklists.filter(x => x.id !== clId);
+  saveState(); renderCardChecklists(); renderKanban();
+}
+function startEditCLTitle(el, clId) {
+  const cl = state.checklists.find(x => x.id === clId);
+  const inp = document.createElement('input');
+  inp.className = 'checklist-block-title-input';
+  inp.value = cl.title;
+  inp.onblur = () => { if (inp.value.trim()) { cl.title = inp.value.trim(); cl.updated_at = now(); saveState(); } inp.replaceWith(el); renderCardChecklists(); };
+  inp.onkeydown = e => { if (e.key==='Enter') inp.blur(); if (e.key==='Escape') { inp.value=cl.title; inp.blur(); } };
+  el.replaceWith(inp); inp.focus(); inp.select();
+}
+function showAddItemForm(clId) {
+  const form = document.getElementById(`add-item-form-${clId}`);
+  form.classList.remove('hidden');
+  document.getElementById(`add-item-input-${clId}`).value = '';
+  document.getElementById(`add-item-input-${clId}`).focus();
+}
+function cancelAddItem(clId) {
+  document.getElementById(`add-item-form-${clId}`).classList.add('hidden');
+}
+function handleAddItemKey(e, clId) {
+  if (e.key==='Enter') { e.preventDefault(); commitAddItem(clId); }
+  if (e.key==='Escape') cancelAddItem(clId);
+}
+function commitAddItem(clId) {
+  const val = document.getElementById(`add-item-input-${clId}`).value.trim();
+  if (!val) return;
+  const items = state.checklist_items.filter(x => x.checklist_id === clId);
+  const pos = items.length ? Math.max(...items.map(x => x.position)) + STEP : STEP;
+  state.checklist_items.push({ id: uid(), checklist_id: clId, text: val, is_completed: false, position: pos, created_at: now(), updated_at: now() });
+  saveState(); renderCardChecklists(); renderKanban();
+  showAddItemForm(clId);
+}
+function toggleItem(itemId) {
+  const it = state.checklist_items.find(x => x.id === itemId);
+  if (!it) return;
+  it.is_completed = !it.is_completed; it.updated_at = now();
+  saveState(); renderCardChecklists(); renderKanban();
+}
+function deleteItem(itemId) {
+  state.checklist_items = state.checklist_items.filter(x => x.id !== itemId);
+  saveState(); renderCardChecklists(); renderKanban();
+}
+function startEditItemText(el, itemId) {
+  const it = state.checklist_items.find(x => x.id === itemId);
+  const inp = document.createElement('input');
+  inp.className = 'checklist-item-text-input';
+  inp.value = it.text;
+  inp.onblur = () => { if (inp.value.trim()) { it.text = inp.value.trim(); it.updated_at = now(); saveState(); } inp.replaceWith(el); renderCardChecklists(); };
+  inp.onkeydown = e => { if (e.key==='Enter') inp.blur(); if (e.key==='Escape') { inp.value=it.text; inp.blur(); } };
+  el.replaceWith(inp); inp.focus(); inp.select();
+}
+
+// ===== Card Title Inline Edit =====
+function startEditCardTitle() {
+  const inp = document.getElementById('card-modal-title-input');
+  inp.value = cardDraft ? cardDraft.title : '';
+  document.getElementById('card-modal-title-display').classList.add('hidden');
+  inp.classList.remove('hidden'); inp.focus(); inp.select();
+}
+function commitCardTitleEdit() {
+  const inp = document.getElementById('card-modal-title-input');
+  const val = inp.value.trim();
+  if (val && cardDraft) cardDraft.title = val;
+  document.getElementById('card-modal-title-display').textContent = cardDraft ? cardDraft.title : '';
+  document.getElementById('card-modal-title-display').classList.remove('hidden');
+  inp.classList.add('hidden');
+}
+function handleCardTitleKey(e) {
+  if (e.key==='Enter') { e.preventDefault(); document.getElementById('card-modal-title-input').blur(); }
+  if (e.key==='Escape') { document.getElementById('card-modal-title-input').value = cardDraft ? cardDraft.title : ''; document.getElementById('card-modal-title-input').blur(); }
+}
+
+// ===== Due Date =====
+function openDatePicker(e) {
+  const pop = document.getElementById('date-popover');
+  document.getElementById('date-input').value = (cardDraft ? cardDraft.due_date : null) || '';
+  pop.classList.remove('hidden');
+  const rect = e.target.getBoundingClientRect();
+  pop.style.top = (rect.bottom + 4) + 'px';
+  pop.style.left = rect.left + 'px';
+}
+function closeDatePicker() { document.getElementById('date-popover').classList.add('hidden'); }
+function previewDate() {}
+function saveDueDate() {
+  const val = document.getElementById('date-input').value;
+  if (cardDraft) cardDraft.due_date = val || null;
+  closeDatePicker(); renderDueDate();
+}
+function clearDueDate() {
+  if (cardDraft) cardDraft.due_date = null;
+  renderDueDate();
+}
+
+// ===== Save Card Draft =====
+function saveCardDraft() {
+  const card = state.cards.find(x => x.id === currentCardId);
+  if (!card || !cardDraft) return;
+  const titleInp = document.getElementById('card-modal-title-input');
+  if (!titleInp.classList.contains('hidden')) {
+    const v = titleInp.value.trim();
+    if (v) cardDraft.title = v;
+  }
+  cardDraft.description = document.getElementById('card-desc').value;
+  card.title = cardDraft.title;
+  card.description = cardDraft.description;
+  card.priority = cardDraft.priority;
+  card.due_date = cardDraft.due_date;
+  card.updated_at = now();
+  saveState();
+  document.getElementById('card-modal-title-display').textContent = card.title;
+  document.getElementById('card-modal-title-display').classList.remove('hidden');
+  document.getElementById('card-modal-title-input').classList.add('hidden');
+  renderKanban();
+  const btn = document.getElementById('card-save-btn');
+  btn.textContent = '保存しました ✓';
+  btn.style.background = '#00875a';
+  setTimeout(() => { btn.textContent = '保存'; btn.style.background = ''; }, 1500);
+}
+function dueDateClass(dateStr) {
+  if (!dateStr) return '';
+  const today = new Date().toISOString().slice(0,10);
+  if (dateStr < today) return 'overdue';
+  if (dateStr === today) return 'today';
+  return '';
+}
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const [,m,d] = dateStr.split('-');
+  return `${parseInt(m)}/${parseInt(d)}`;
+}
+
+// ===== Labels =====
+function openLabelModal() {
+  renderLabelModal();
+  document.getElementById('modal-labels-backdrop').classList.remove('hidden');
+}
+function closeLabelModal() { document.getElementById('modal-labels-backdrop').classList.add('hidden'); if (currentCardId) renderCardModal(); if (currentBoardId) renderKanban(); }
+function renderLabelModal() {
+  const labels = state.labels.filter(x => x.board_id === currentBoardId);
+  const container = document.getElementById('label-list');
+  container.innerHTML = labels.length
+    ? labels.map(l => `
+      <div class="label-list-item" data-label-id="${l.id}">
+        <div class="label-color-dot" style="background:${l.color}"></div>
+        <span class="label-list-name" id="label-name-display-${l.id}">${esc(l.name)}</span>
+        <input class="label-list-name-input hidden" id="label-name-input-${l.id}" type="text" value="${esc(l.name)}"
+          onblur="commitLabelEdit('${l.id}')" onkeydown="handleLabelEditKey(event,'${l.id}')">
+        <button class="label-list-btn" onclick="startLabelEdit('${l.id}')">編集</button>
+        <button class="label-list-btn danger" onclick="confirmDeleteLabel('${l.id}')">削除</button>
+      </div>
+    `).join('')
+    : '<p style="color:#5e6c84; font-size:13px; margin-bottom:12px;">ラベルがありません</p>';
+  // Color palette
+  const palette = document.getElementById('color-palette');
+  palette.innerHTML = COLORS.map(c => `<div class="color-swatch" style="background:${c}" data-color="${c}" onclick="selectColor('${c}')"></div>`).join('');
+  document.getElementById('new-label-name').value = '';
+  document.getElementById('new-label-name').oninput = updateAddLabelBtn;
+  document.getElementById('add-label-btn').disabled = true;
+  palette.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('selected'));
+}
+function selectColor(color) {
+  document.querySelectorAll('#color-palette .color-swatch').forEach(el => el.classList.toggle('selected', el.dataset.color === color));
+  updateAddLabelBtn();
+}
+function updateAddLabelBtn() {
+  const name = document.getElementById('new-label-name').value.trim();
+  const colorSelected = !!document.querySelector('#color-palette .color-swatch.selected');
+  document.getElementById('add-label-btn').disabled = !(name && colorSelected);
+}
+function addLabel() {
+  const name = document.getElementById('new-label-name').value.trim();
+  const colorEl = document.querySelector('#color-palette .color-swatch.selected');
+  if (!name || !colorEl) return;
+  state.labels.push({ id: uid(), board_id: currentBoardId, name, color: colorEl.dataset.color, created_at: now(), updated_at: now() });
+  saveState(); renderLabelModal();
+}
+function resetAddLabelForm() { renderLabelModal(); }
+function startLabelEdit(labelId) {
+  document.getElementById(`label-name-display-${labelId}`).classList.add('hidden');
+  const inp = document.getElementById(`label-name-input-${labelId}`);
+  inp.classList.remove('hidden'); inp.focus(); inp.select();
+}
+function commitLabelEdit(labelId) {
+  const inp = document.getElementById(`label-name-input-${labelId}`);
+  const val = inp.value.trim();
+  if (val) {
+    const l = state.labels.find(x => x.id === labelId);
+    l.name = val; l.updated_at = now(); saveState();
+  }
+  renderLabelModal();
+}
+function handleLabelEditKey(e, labelId) {
+  if (e.key==='Enter') document.getElementById(`label-name-input-${labelId}`).blur();
+  if (e.key==='Escape') { const l=state.labels.find(x=>x.id===labelId); document.getElementById(`label-name-input-${labelId}`).value=l.name; document.getElementById(`label-name-input-${labelId}`).blur(); }
+}
+function deleteLabel(labelId) {
+  state.card_labels = state.card_labels.filter(x => x.label_id !== labelId);
+  state.labels = state.labels.filter(x => x.id !== labelId);
+  saveState(); renderLabelModal(); if (currentCardId) renderCardModal(); if (currentBoardId) renderKanban();
+}
+function openLabelPopover(e) {
+  const pop = document.getElementById('label-popover');
+  const labels = state.labels.filter(x => x.board_id === currentBoardId);
+  const assigned = state.card_labels.filter(x => x.card_id === currentCardId).map(x => x.label_id);
+  document.getElementById('label-popover-list').innerHTML = labels.length
+    ? labels.map(l => `
+      <div class="label-popover-item" onclick="toggleCardLabel('${l.id}')">
+        <div class="label-popover-dot" style="background:${l.color}"></div>
+        <span class="label-popover-name">${esc(l.name)}</span>
+        ${assigned.includes(l.id) ? '<span class="label-popover-check">✓</span>' : ''}
+      </div>
+    `).join('')
+    : '<p style="font-size:12px;color:#5e6c84;padding:4px 0;">ラベルがありません。<br>先にラベルを作成してください。</p>';
+  pop.classList.remove('hidden');
+  const rect = e.target.getBoundingClientRect();
+  pop.style.top = (rect.bottom + 4) + 'px';
+  pop.style.left = rect.left + 'px';
+}
+function closeLabelPopover() { document.getElementById('label-popover').classList.add('hidden'); }
+function toggleCardLabel(labelId) {
+  const existing = state.card_labels.find(x => x.card_id === currentCardId && x.label_id === labelId);
+  if (existing) state.card_labels = state.card_labels.filter(x => !(x.card_id===currentCardId && x.label_id===labelId));
+  else state.card_labels.push({ card_id: currentCardId, label_id: labelId, created_at: now() });
+  saveState(); renderCardLabelChips(); openLabelPopover({ target: document.querySelector('#card-label-chips + button') });
+}
+function removeCardLabel(labelId) {
+  state.card_labels = state.card_labels.filter(x => !(x.card_id===currentCardId && x.label_id===labelId));
+  saveState(); renderCardLabelChips(); renderKanban();
+}
+
+// ===== Board Title Edit =====
+function startEditBoardTitle(el) {
+  const inp = document.getElementById('kanban-title-input');
+  inp.value = el.textContent;
+  el.classList.add('hidden'); inp.classList.remove('hidden'); inp.focus(); inp.select();
+}
+function commitBoardTitleEdit() {
+  const board = state.boards.find(x => x.id === currentBoardId);
+  const inp = document.getElementById('kanban-title-input');
+  const val = inp.value.trim();
+  if (val) { board.title = val; board.updated_at = now(); saveState(); }
+  const titleEl = document.getElementById('kanban-title');
+  titleEl.textContent = board.title;
+  titleEl.classList.remove('hidden'); inp.classList.add('hidden');
+  renderBoards();
+}
+function handleBoardTitleKey(e) {
+  if (e.key==='Enter') { e.preventDefault(); document.getElementById('kanban-title-input').blur(); }
+  if (e.key==='Escape') { const b=state.boards.find(x=>x.id===currentBoardId); document.getElementById('kanban-title-input').value=b.title; document.getElementById('kanban-title-input').blur(); }
+}
+
+// ===== Dialogs =====
+function openDialog(mode, targetId) {
+  dialogMode = mode;
+  const titleEl = document.getElementById('dialog-title');
+  const inp = document.getElementById('dialog-input');
+  const btn = document.getElementById('dialog-confirm-btn');
+  inp.dataset.targetId = targetId || '';
+  switch(mode) {
+    case 'board-create': titleEl.textContent='新規ボードを作成'; inp.value=''; inp.placeholder='例：プロジェクト A'; btn.textContent='作成'; break;
+    case 'board-rename': { const b=state.boards.find(x=>x.id===targetId); titleEl.textContent='ボードを改名'; inp.value=b.title; inp.placeholder='ボード名'; btn.textContent='変更'; break; }
+    case 'list-rename': { const l=state.lists.find(x=>x.id===targetId); titleEl.textContent='リストの名前を変更'; inp.value=l.title; inp.placeholder='リスト名'; btn.textContent='変更'; break; }
+    case 'checklist-create': titleEl.textContent='チェックリストを追加'; inp.value=''; inp.placeholder='例：タスクリスト'; btn.textContent='追加'; break;
+  }
+  btn.disabled = !inp.value.trim();
+  document.getElementById('modal-dialog-backdrop').classList.remove('hidden');
+  setTimeout(() => { inp.focus(); inp.select(); }, 50);
+}
+function closeDialog() { document.getElementById('modal-dialog-backdrop').classList.add('hidden'); dialogMode = null; }
+function onDialogInput() {
+  document.getElementById('dialog-confirm-btn').disabled = !document.getElementById('dialog-input').value.trim();
+}
+function handleDialogKey(e) {
+  if (e.key==='Enter') { e.preventDefault(); confirmDialog(); }
+  if (e.key==='Escape') closeDialog();
+}
+function confirmDialog() {
+  const val = document.getElementById('dialog-input').value.trim();
+  const targetId = document.getElementById('dialog-input').dataset.targetId;
+  if (!val) return;
+  switch(dialogMode) {
+    case 'board-create': createBoard(val); break;
+    case 'board-rename': renameBoard(targetId, val); break;
+    case 'list-rename': renameList(targetId, val); break;
+    case 'checklist-create': createChecklist(val); break;
+  }
+  closeDialog();
+}
+
+// ===== Confirm Dialogs =====
+function confirmDeleteBoard() { confirmDeleteBoardById(currentBoardId); }
+function confirmDeleteBoardById(boardId) {
+  const b = state.boards.find(x => x.id === boardId);
+  const listCount = state.lists.filter(x => x.board_id === boardId).length;
+  openConfirm(`「${b.title}」を削除しますか？`, 'この操作は取り消せません。', listCount ? `配下のリスト・カードもすべて削除されます。` : '', () => deleteBoard(boardId));
+}
+function confirmDeleteList(listId) {
+  const l = state.lists.find(x => x.id === listId);
+  const cardCount = state.cards.filter(x => x.list_id === listId).length;
+  openConfirm(`「${l.title}」を削除しますか？`, 'この操作は取り消せません。', cardCount ? `配下の ${cardCount} 件のカードもすべて削除されます。` : '', () => deleteList(listId));
+}
+function confirmDeleteCard() {
+  const card = state.cards.find(x => x.id === currentCardId);
+  openConfirm(`「${card.title}」を削除しますか？`, 'この操作は取り消せません。', '', () => deleteCard(currentCardId));
+}
+function confirmDeleteChecklist(clId) {
+  const cl = state.checklists.find(x => x.id === clId);
+  const itemCount = state.checklist_items.filter(x => x.checklist_id === clId).length;
+  openConfirm(`「${cl.title}」を削除しますか？`, 'この操作は取り消せません。', itemCount ? `配下の ${itemCount} 件の項目もすべて削除されます。` : '', () => deleteChecklist(clId));
+}
+function confirmDeleteLabel(labelId) {
+  const l = state.labels.find(x => x.id === labelId);
+  const count = state.card_labels.filter(x => x.label_id === labelId).length;
+  openConfirm(`「${l.name}」ラベルを削除しますか？`, 'この操作は取り消せません。', count ? `付与済みの ${count} 枚のカードからも自動的に外れます。` : '', () => deleteLabel(labelId));
+}
+function openConfirm(title, body, sub, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent = body;
+  const subEl = document.getElementById('confirm-sub');
+  if (sub) { subEl.textContent = sub; subEl.classList.remove('hidden'); subEl.style.display=''; }
+  else { subEl.classList.add('hidden'); }
+  confirmCallback = cb;
+  document.getElementById('modal-confirm-backdrop').classList.remove('hidden');
+}
+function closeConfirm() { document.getElementById('modal-confirm-backdrop').classList.add('hidden'); confirmCallback = null; }
+function executeConfirm() { if (confirmCallback) confirmCallback(); closeConfirm(); }
+
+// ===== Dropdown =====
+function showDropdown(e, items) {
+  const overlay = document.getElementById('dropdown-overlay');
+  const menu = document.getElementById('dropdown-menu');
+  overlay.classList.remove('hidden');
+  menu.classList.remove('hidden');
+  menu.innerHTML = items.map(item =>
+    `<button class="dropdown-item${item.danger?' danger':''}" onclick="closeDropdown(); (${item.action.toString()})();">${item.label}</button>`
+  ).join('');
+  const rect = e.target.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 2) + 'px';
+  menu.style.left = rect.left + 'px';
+}
+function closeDropdown() {
+  document.getElementById('dropdown-overlay').classList.add('hidden');
+  document.getElementById('dropdown-menu').classList.add('hidden');
+}
+
+// ===== Modal backdrop close =====
+function closeModalByBackdrop(e, backdropId) {
+  if (e.target.id === backdropId) {
+    if (backdropId === 'modal-card-backdrop') closeCardModal();
+    if (backdropId === 'modal-labels-backdrop') closeLabelModal();
+  }
+}
+
+// ===== Popover close on outside click =====
+document.addEventListener('click', e => {
+  const pop = document.getElementById('label-popover');
+  const datePop = document.getElementById('date-popover');
+  if (!pop.classList.contains('hidden') && !pop.contains(e.target) && !e.target.matches('[onclick*="openLabelPopover"]') && !e.target.closest('[onclick*="openLabelPopover"]')) {
+    closeLabelPopover();
+  }
+  if (!datePop.classList.contains('hidden') && !datePop.contains(e.target) && !e.target.matches('[onclick*="openDatePicker"]') && !e.target.closest('[onclick*="openDatePicker"]')) {
+    closeDatePicker();
+  }
+}, true);
+
+// ===== Escape key =====
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDatePicker(); closeLabelPopover(); closeDropdown();
+    if (!document.getElementById('modal-confirm-backdrop').classList.contains('hidden')) closeConfirm();
+    else if (!document.getElementById('modal-dialog-backdrop').classList.contains('hidden')) closeDialog();
+    else if (!document.getElementById('modal-labels-backdrop').classList.contains('hidden')) closeLabelModal();
+    else if (!document.getElementById('modal-card-backdrop').classList.contains('hidden')) closeCardModal();
+  }
+});
+
+// ===== Helpers =====
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== Init =====
+renderBoards();
+</script>
+</body>
+</html>
