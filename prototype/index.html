@@ -144,9 +144,6 @@
   .card-modal-title-input { width: 100%; font-size: 18px; font-weight: 700; border: 2px solid #0052cc; border-radius: 4px; padding: 4px 6px; outline: none; resize: none; overflow: hidden; }
 
   .card-modal-body { display: grid; grid-template-columns: 1fr 200px; gap: 20px; }
-  .card-modal-main {}
-  .card-modal-sidebar {}
-
   .card-section { margin-bottom: 20px; }
   .card-section-label { font-size: 12px; font-weight: 600; color: #5e6c84; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
 
@@ -578,9 +575,7 @@ function buildListEl(list) {
   const sort = listSortMap[list.id] || 'position';
   col.innerHTML = `
     <div class="list-header" draggable="true">
-      <span class="list-title" data-list-id="${list.id}" ondblclick="startEditListTitle(this,'${list.id}')">${esc(list.title)}</span>
-      <input class="list-title-input hidden" data-list-id="${list.id}" type="text"
-        onblur="commitListTitleEdit('${list.id}',this)" onkeydown="handleListTitleKey(event,'${list.id}',this)">
+      <span class="list-title" data-list-id="${list.id}">${esc(list.title)}</span>
       <button class="list-menu-btn" onclick="openListMenu(event,'${list.id}')">···</button>
     </div>
     <div class="list-sort-bar">
@@ -767,15 +762,8 @@ function commitAddList() {
 function openListMenu(e, listId) {
   e.stopPropagation();
   showDropdown(e, [
-    { label: 'リストの名前を変更', action: () => openDialog('list-rename', listId) },
     { label: 'リストを削除', action: () => confirmDeleteList(listId), danger: true },
   ]);
-}
-function renameList(listId, title) {
-  const l = state.lists.find(x => x.id === listId);
-  if (!l) return;
-  l.title = title; l.updated_at = now();
-  saveState(); renderKanban();
 }
 function deleteList(listId) {
   const cardIds = state.cards.filter(x => x.list_id === listId).map(x => x.id);
@@ -786,29 +774,6 @@ function deleteList(listId) {
   state.cards = state.cards.filter(x => x.list_id !== listId);
   state.lists = state.lists.filter(x => x.id !== listId);
   saveState(); renderKanban();
-}
-
-// Inline list title edit
-function startEditListTitle(el, listId) {
-  const col = el.closest('.list-column');
-  const inp = col.querySelector('.list-title-input');
-  inp.value = state.lists.find(x => x.id === listId).title;
-  el.classList.add('hidden'); inp.classList.remove('hidden'); inp.focus(); inp.select();
-}
-function commitListTitleEdit(listId, inp) {
-  const val = inp.value.trim();
-  const l = state.lists.find(x => x.id === listId);
-  if (val) { l.title = val; l.updated_at = now(); saveState(); }
-  const col = inp.closest('.list-column');
-  col.querySelector('.list-title').textContent = l.title;
-  inp.classList.add('hidden'); col.querySelector('.list-title').classList.remove('hidden');
-}
-function handleListTitleKey(e, listId, inp) {
-  if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
-  if (e.key === 'Escape') {
-    const l = state.lists.find(x => x.id === listId);
-    inp.value = l.title; inp.blur();
-  }
 }
 
 // ===== Card CRUD =====
@@ -1247,7 +1212,6 @@ function openDialog(mode, targetId) {
   switch(mode) {
     case 'board-create': titleEl.textContent='新規ボードを作成'; inp.value=''; inp.placeholder='例：プロジェクト A'; btn.textContent='作成'; break;
     case 'board-rename': { const b=state.boards.find(x=>x.id===targetId); titleEl.textContent='ボードを改名'; inp.value=b.title; inp.placeholder='ボード名'; btn.textContent='変更'; break; }
-    case 'list-rename': { const l=state.lists.find(x=>x.id===targetId); titleEl.textContent='リストの名前を変更'; inp.value=l.title; inp.placeholder='リスト名'; btn.textContent='変更'; break; }
     case 'checklist-create': titleEl.textContent='チェックリストを追加'; inp.value=''; inp.placeholder='例：タスクリスト'; btn.textContent='追加'; break;
   }
   btn.disabled = !inp.value.trim();
@@ -1269,7 +1233,6 @@ function confirmDialog() {
   switch(dialogMode) {
     case 'board-create': createBoard(val); break;
     case 'board-rename': renameBoard(targetId, val); break;
-    case 'list-rename': renameList(targetId, val); break;
     case 'checklist-create': createChecklist(val); break;
   }
   closeDialog();
