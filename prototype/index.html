@@ -1282,9 +1282,17 @@ function showDropdown(e, items) {
   const menu = document.getElementById('dropdown-menu');
   overlay.classList.remove('hidden');
   menu.classList.remove('hidden');
-  menu.innerHTML = items.map(item =>
-    `<button class="dropdown-item${item.danger?' danger':''}" onclick="closeDropdown(); (${item.action.toString()})();">${item.label}</button>`
-  ).join('');
+  menu.innerHTML = '';
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = `dropdown-item${item.danger ? ' danger' : ''}`;
+    btn.textContent = item.label;
+    btn.addEventListener('click', () => {
+      closeDropdown();
+      item.action();
+    });
+    menu.appendChild(btn);
+  });
   const rect = e.target.getBoundingClientRect();
   menu.style.top = (rect.bottom + 2) + 'px';
   menu.style.left = rect.left + 'px';
