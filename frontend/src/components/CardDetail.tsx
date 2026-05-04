@@ -12,9 +12,10 @@ interface Props {
   cardId: string
   boardId: string
   onClose: () => void
+  onSaved?: () => void
 }
 
-export default function CardDetail({ cardId, boardId, onClose }: Props) {
+export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props) {
   const { card, loading, error, refetch } = useCardDetail(cardId)
 
   // カードフィールド編集（一括保存）
@@ -23,24 +24,17 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
   const [editPriority, setEditPriority] = useState<'high' | 'medium' | 'low'>('medium')
   const [editDueDate, setEditDueDate] = useState('')
   const [saving, setSaving] = useState(false)
-  const initializedCardId = useRef<string | null>(null)
+  const [initializedForId, setInitializedForId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (card && initializedCardId.current !== card.id) {
+    if (card && card.id !== initializedForId) {
       setEditTitle(card.title)
       setEditDesc(card.description ?? '')
       setEditPriority(card.priority)
       setEditDueDate(card.dueDate ?? '')
-      initializedCardId.current = card.id
+      setInitializedForId(card.id)
     }
-  }, [card])
-
-  const isDirty = card
-    ? editTitle.trim() !== card.title
-      || editDesc !== (card.description ?? '')
-      || editPriority !== card.priority
-      || editDueDate !== (card.dueDate ?? '')
-    : false
+  }, [card, initializedForId])
 
   const handleSave = async () => {
     if (!card || !editTitle.trim() || saving) return
@@ -52,7 +46,8 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
         priority: editPriority,
         dueDate: editDueDate || null,
       })
-      await refetch()
+      onSaved?.()
+      onClose()
     } finally {
       setSaving(false)
     }
@@ -216,12 +211,12 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                             className="cursor-pointer"
                           />
                           <span
-                            className="text-white text-xs font-bold px-2 py-0.5 rounded-full flex-1"
+                            className="text-white text-xs font-bold px-2 py-0.5 rounded-full"
                             style={{ backgroundColor: l.color }}
                           >
                             {l.name}
                           </span>
-                          {togglingLabelId === l.id && <Spinner className="w-3 h-3" />}
+                          {togglingLabelId === l.id && <Spinner className="w-3 h-3 ml-auto" />}
                         </label>
                       )
                     })
@@ -348,12 +343,9 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
 
             {/* 保存ボタン */}
             <div className="pb-2">
-              {isDirty && !saving && (
-                <p className="text-xs text-orange-500 mb-2">未保存の変更があります</p>
-              )}
               <button
                 onClick={handleSave}
-                disabled={!isDirty || saving || !editTitle.trim()}
+                disabled={saving || !editTitle.trim()}
                 className="w-full py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 {saving && <Spinner className="w-4 h-4 text-white" />}
