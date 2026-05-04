@@ -157,16 +157,11 @@ export default function BoardDetail() {
                       {...listProvided.draggableProps}
                       className={`w-72 flex-shrink-0 bg-gray-100 rounded-md flex flex-col ${listSnapshot.isDragging ? 'shadow-2xl rotate-1' : ''}`}
                     >
-                      {/* リストヘッダー */}
-                      <div className="px-3 py-2 font-bold text-sm text-gray-700 flex items-center gap-1">
-                        {/* ドラッグハンドル */}
-                        <span
-                          {...listProvided.dragHandleProps}
-                          className="text-gray-300 hover:text-gray-500 cursor-grab select-none text-base leading-none"
-                          title="ドラッグして並べ替え"
-                        >
-                          ⠿
-                        </span>
+                      {/* リストヘッダー（全体がドラッグハンドル） */}
+                      <div
+                        {...listProvided.dragHandleProps}
+                        className="px-3 py-2 font-bold text-sm text-gray-700 flex items-center gap-1 cursor-grab active:cursor-grabbing"
+                      >
                         {editingListId === list.id ? (
                           <input
                             ref={listTitleInputRef}
@@ -205,23 +200,11 @@ export default function BoardDetail() {
                                   <div
                                     ref={cardDraggable.innerRef}
                                     {...cardDraggable.draggableProps}
-                                    className={`bg-white rounded shadow-sm hover:shadow-md transition flex items-stretch ${cardDragging.isDragging ? 'shadow-xl rotate-1 opacity-90' : ''}`}
+                                    {...cardDraggable.dragHandleProps}
+                                    onClick={() => setSelectedCardId(card.id)}
+                                    className={`cursor-pointer ${cardDragging.isDragging ? 'shadow-xl rotate-1 opacity-90' : ''}`}
                                   >
-                                    {/* カードドラッグハンドル */}
-                                    <div
-                                      {...cardDraggable.dragHandleProps}
-                                      className="flex items-center px-1.5 text-gray-200 hover:text-gray-400 cursor-grab select-none rounded-l"
-                                      title="ドラッグして並べ替え"
-                                    >
-                                      ⠿
-                                    </div>
-                                    {/* クリッカブルエリア */}
-                                    <div
-                                      className="flex-1 cursor-pointer"
-                                      onClick={() => setSelectedCardId(card.id)}
-                                    >
-                                      <CardTile card={card} />
-                                    </div>
+                                    <CardTile card={card} />
                                   </div>
                                 )}
                               </Draggable>
@@ -273,7 +256,7 @@ function CardTile({ card }: { card: CardSummary }) {
         : 'text-gray-500'
 
   return (
-    <div className="px-2.5 py-2 text-left w-full">
+    <div className="bg-white rounded px-2.5 py-2 shadow-sm hover:shadow-md transition w-full">
       {card.labels.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-1">
           {card.labels.map(l => (
