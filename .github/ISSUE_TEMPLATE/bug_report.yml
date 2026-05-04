@@ -1,0 +1,67 @@
+name: バグ報告
+description: 不具合・予期しない動作の報告
+title: "fix: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグ報告ありがとうございます。以下の項目を記入してください。
+
+  - type: input
+    id: summary
+    attributes:
+      label: 概要
+      description: 何が起きているか一言で
+      placeholder: 例）カードを削除すると画面がフリーズする
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: バグを再現するための手順
+      placeholder: |
+        1. ボードを開く
+        2. カードを作成する
+        3. 削除ボタンを押す
+        4. エラーが発生する
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+      description: 本来どうなるべきか
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+      description: 実際に何が起きているか
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境
+      description: OS・ブラウザ・バージョンなど
+      placeholder: |
+        - OS: Windows 11
+        - ブラウザ: Chrome 124
+        - フロントエンド version: 0.x
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: ログ・スクリーンショット
+      description: エラーログやスクリーンショットがあれば貼り付けてください
+    validations:
+      required: false
