@@ -30,6 +30,17 @@ public class Label {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    protected Label() {}
+
+    Label(UUID id, Board board, String name, String color, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.id = id;
+        this.board = board;
+        this.name = name;
+        this.color = color;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public UUID getId() { return id; }
     public Board getBoard() { return board; }
     public String getName() { return name; }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { fetchCardDetail } from '../api/cards'
 import type { CardDetail } from '../types/api'
 
@@ -7,7 +7,7 @@ export function useCardDetail(cardId: string | null) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     if (!cardId) { setCard(null); return }
     setLoading(true)
     fetchCardDetail(cardId)
@@ -16,5 +16,7 @@ export function useCardDetail(cardId: string | null) {
       .finally(() => setLoading(false))
   }, [cardId])
 
-  return { card, loading, error }
+  useEffect(() => { fetchData() }, [fetchData])
+
+  return { card, loading, error, refetch: fetchData }
 }

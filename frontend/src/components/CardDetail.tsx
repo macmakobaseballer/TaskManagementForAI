@@ -1,12 +1,19 @@
+import { useState } from 'react'
 import { useCardDetail } from '../hooks/useCardDetail'
+import CreateChecklistForm from './CreateChecklistForm'
+import CreateChecklistItemForm from './CreateChecklistItemForm'
+import LabelModal from './LabelModal'
+import Spinner from './Spinner'
 
 interface Props {
   cardId: string
+  boardId: string
   onClose: () => void
 }
 
-export default function CardDetail({ cardId, onClose }: Props) {
-  const { card, loading, error } = useCardDetail(cardId)
+export default function CardDetail({ cardId, boardId, onClose }: Props) {
+  const { card, loading, error, refetch } = useCardDetail(cardId)
+  const [showLabelModal, setShowLabelModal] = useState(false)
 
   return (
     <div
@@ -21,15 +28,33 @@ export default function CardDetail({ cardId, onClose }: Props) {
           ×
         </button>
 
-        {loading && <p className="text-gray-500">読み込み中...</p>}
+        {loading && !card && (
+          <div className="flex items-center gap-2 text-gray-500 py-4">
+            <Spinner />
+            <span>読み込み中...</span>
+          </div>
+        )}
+        {loading && card && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2">
+            <Spinner className="w-4 h-4" />
+          </div>
+        )}
         {error && <p className="text-red-600">エラー: {error}</p>}
         {card && (
           <>
             <h2 className="text-lg font-bold mb-4 pr-8">{card.title}</h2>
 
-            {card.labels.length > 0 && (
-              <div className="mb-4">
-                <div className="text-xs font-semibold text-gray-400 uppercase mb-1">ラベル</div>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-xs font-semibold text-gray-400 uppercase">ラベル</div>
+                <button
+                  onClick={() => setShowLabelModal(true)}
+                  className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
+                >
+                  + ラベル管理
+                </button>
+              </div>
+              {card.labels.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {card.labels.map(l => (
                     <span
@@ -41,8 +66,8 @@ export default function CardDetail({ cardId, onClose }: Props) {
                     </span>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {card.description && (
               <div className="mb-4">
@@ -51,47 +76,49 @@ export default function CardDetail({ cardId, onClose }: Props) {
               </div>
             )}
 
-            {card.checklists.length > 0 && (
-              <div className="mb-4">
-                <div className="text-xs font-semibold text-gray-400 uppercase mb-2">チェックリスト</div>
-                {[...card.checklists]
-                  .sort((a, b) => a.position - b.position)
-                  .map(cl => {
-                    const done = cl.items.filter(i => i.isCompleted).length
-                    const total = cl.items.length
-                    const pct = total ? Math.round((done / total) * 100) : 0
-                    return (
-                      <div key={cl.id} className="mb-3">
-                        <div className="flex justify-between text-sm font-semibold mb-1">
-                          <span>{cl.title}</span>
-                          <span className="text-gray-400 text-xs">{done}/{total} ({pct}%)</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-200 rounded mb-2 overflow-hidden">
-                          <div
-                            className={`h-full rounded transition-all ${pct === 100 ? 'bg-green-500' : 'bg-blue-500'}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        {[...cl.items]
-                          .sort((a, b) => a.position - b.position)
-                          .map(item => (
-                            <div key={item.id} className="flex items-center gap-2 py-0.5">
-                              <input
-                                type="checkbox"
-                                checked={item.isCompleted}
-                                readOnly
-                                className="cursor-default"
-                              />
-                              <span className={`text-sm ${item.isCompleted ? 'line-through text-gray-400' : ''}`}>
-                                {item.text}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    )
-                  })}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-gray-400 uppercase">チェックリスト</div>
+                <CreateChecklistForm cardId={card.id} onCreated={refetch} />
               </div>
-            )}
+              {[...card.checklists]
+                .sort((a, b) => a.position - b.position)
+                .map(cl => {
+                  const done = cl.items.filter(i => i.isCompleted).length
+                  const total = cl.items.length
+                  const pct = total ? Math.round((done / total) * 100) : 0
+                  return (
+                    <div key={cl.id} className="mb-3">
+                      <div className="flex justify-between text-sm font-semibold mb-1">
+                        <span>{cl.title}</span>
+                        <span className="text-gray-400 text-xs">{done}/{total} ({pct}%)</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 rounded mb-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded transition-all ${pct === 100 ? 'bg-green-500' : 'bg-blue-500'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      {[...cl.items]
+                        .sort((a, b) => a.position - b.position)
+                        .map(item => (
+                          <div key={item.id} className="flex items-center gap-2 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={item.isCompleted}
+                              readOnly
+                              className="cursor-default"
+                            />
+                            <span className={`text-sm ${item.isCompleted ? 'line-through text-gray-400' : ''}`}>
+                              {item.text}
+                            </span>
+                          </div>
+                        ))}
+                      <CreateChecklistItemForm checklistId={cl.id} onCreated={refetch} />
+                    </div>
+                  )
+                })}
+            </div>
 
             <div className="border-t pt-3 text-xs text-gray-400 flex gap-4">
               <span>優先度: {card.priority}</span>
@@ -100,6 +127,14 @@ export default function CardDetail({ cardId, onClose }: Props) {
           </>
         )}
       </div>
+
+      {showLabelModal && (
+        <LabelModal
+          boardId={boardId}
+          onClose={() => setShowLabelModal(false)}
+          onLabelsChanged={refetch}
+        />
+      )}
     </div>
   )
 }

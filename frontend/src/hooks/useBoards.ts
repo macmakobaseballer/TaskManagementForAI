@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { fetchBoards } from '../api/boards'
 import type { BoardSummary } from '../types/api'
 
@@ -7,12 +7,15 @@ export function useBoards() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
+    setLoading(true)
     fetchBoards()
       .then(setBoards)
       .catch(err => setError(err.message ?? 'ボードの取得に失敗しました'))
       .finally(() => setLoading(false))
   }, [])
 
-  return { boards, loading, error }
+  useEffect(() => { fetchData() }, [fetchData])
+
+  return { boards, loading, error, refetch: fetchData }
 }

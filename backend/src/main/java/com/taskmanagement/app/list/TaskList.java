@@ -37,6 +37,17 @@ public class TaskList {
     @OrderBy("position ASC")
     private List<Card> cards = new ArrayList<>();
 
+    protected TaskList() {}
+
+    TaskList(UUID id, Board board, String title, Double position, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.id = id;
+        this.board = board;
+        this.title = title;
+        this.position = position;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public UUID getId() { return id; }
     public Board getBoard() { return board; }
     public String getTitle() { return title; }

@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,6 +29,13 @@ public class BoardService {
     public BoardService(BoardRepository boardRepository, CardRepository cardRepository) {
         this.boardRepository = boardRepository;
         this.cardRepository = cardRepository;
+    }
+
+    @Transactional
+    public BoardSummaryResponse createBoard(BoardCreateRequest request) {
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        Board board = new Board(UUID.randomUUID(), request.title().strip(), now, now);
+        return BoardSummaryResponse.from(boardRepository.save(board));
     }
 
     public List<BoardSummaryResponse> getAllBoards() {
