@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useCardDetail } from '../hooks/useCardDetail'
-import { updateCard, toggleChecklistItem as apiToggle } from '../api/cards'
+import { updateCard } from '../api/cards'
+import { toggleChecklistItem as apiToggle, updateChecklist, updateChecklistItem } from '../api/checklists'
 import CreateChecklistForm from './CreateChecklistForm'
 import CreateChecklistItemForm from './CreateChecklistItemForm'
 import LabelModal from './LabelModal'
@@ -16,100 +17,92 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
   const { card, loading, error, refetch } = useCardDetail(cardId)
   const [showLabelModal, setShowLabelModal] = useState(false)
 
-  // インライン編集ステート
-  const [editingTitle, setEditingTitle] = useState(false)
-  const [titleValue, setTitleValue] = useState('')
-  const [editingDesc, setEditingDesc] = useState(false)
-  const [descValue, setDescValue] = useState('')
-  const [savingField, setSavingField] = useState<string | null>(null)
-  const titleRef = useRef<HTMLInputElement>(null)
-  const descRef = useRef<HTMLTextAreaElement>(null)
+  // カードフィールド編集（一括保存）
+  const [editTitle, setEditTitle] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editPriority, setEditPriority] = useState<'high' | 'medium' | 'low'>('medium')
+  const [editDueDate, setEditDueDate] = useState('')
+  const [saving, setSaving] = useState(false)
+  const initializedCardId = useRef<string | null>(null)
 
-  const startEditTitle = () => {
-    if (!card) return
-    setTitleValue(card.title)
-    setEditingTitle(true)
-    setTimeout(() => titleRef.current?.select(), 0)
-  }
+  // カードが初めてロードされたときだけ編集フィールドを初期化
+  // refetch（チェックリストトグルなど）では上書きしない
+  useEffect(() => {
+    if (card && initializedCardId.current !== card.id) {
+      setEditTitle(card.title)
+      setEditDesc(card.description ?? '')
+      setEditPriority(card.priority)
+      setEditDueDate(card.dueDate ?? '')
+      initializedCardId.current = card.id
+    }
+  }, [card])
 
-  const saveTitle = async () => {
-    if (!card || !titleValue.trim() || savingField) return
-    if (titleValue.trim() === card.title) { setEditingTitle(false); return }
-    setSavingField('title')
+  const isDirty = card
+    ? editTitle.trim() !== card.title
+      || editDesc !== (card.description ?? '')
+      || editPriority !== card.priority
+      || editDueDate !== (card.dueDate ?? '')
+    : false
+
+  // 一括保存（PUT /api/cards/{id} → 1トランザクション）
+  const handleSave = async () => {
+    if (!card || !editTitle.trim() || saving) return
+    setSaving(true)
     try {
       await updateCard(card.id, {
-        title: titleValue.trim(),
-        description: card.description,
-        priority: card.priority,
-        dueDate: card.dueDate,
+        title: editTitle.trim(),
+        description: editDesc || null,
+        priority: editPriority,
+        dueDate: editDueDate || null,
       })
       await refetch()
     } finally {
-      setSavingField(null)
-      setEditingTitle(false)
+      setSaving(false)
     }
   }
 
-  const startEditDesc = () => {
-    if (!card) return
-    setDescValue(card.description ?? '')
-    setEditingDesc(true)
-    setTimeout(() => descRef.current?.focus(), 0)
-  }
-
-  const saveDesc = async () => {
-    if (!card || savingField) return
-    if (descValue === (card.description ?? '')) { setEditingDesc(false); return }
-    setSavingField('desc')
-    try {
-      await updateCard(card.id, {
-        title: card.title,
-        description: descValue || null,
-        priority: card.priority,
-        dueDate: card.dueDate,
-      })
-      await refetch()
-    } finally {
-      setSavingField(null)
-      setEditingDesc(false)
-    }
-  }
-
-  const savePriority = async (newPriority: string) => {
-    if (!card) return
-    setSavingField('priority')
-    try {
-      await updateCard(card.id, {
-        title: card.title,
-        description: card.description,
-        priority: newPriority as 'high' | 'medium' | 'low',
-        dueDate: card.dueDate,
-      })
-      await refetch()
-    } finally {
-      setSavingField(null)
-    }
-  }
-
-  const saveDueDate = async (newDate: string) => {
-    if (!card) return
-    setSavingField('dueDate')
-    try {
-      await updateCard(card.id, {
-        title: card.title,
-        description: card.description,
-        priority: card.priority,
-        dueDate: newDate || null,
-      })
-      await refetch()
-    } finally {
-      setSavingField(null)
-    }
-  }
-
+  // チェックリストアイテム トグル
   const handleToggleItem = async (itemId: string) => {
     await apiToggle(itemId)
     await refetch()
+  }
+
+  // チェックリストタイトル インライン編集
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null)
+  const [editingChecklistTitle, setEditingChecklistTitle] = useState('')
+
+  const startEditChecklistTitle = (checklistId: string, currentTitle: string) => {
+    setEditingChecklistId(checklistId)
+    setEditingChecklistTitle(currentTitle)
+  }
+
+  const saveChecklistTitle = async () => {
+    if (!editingChecklistId || !editingChecklistTitle.trim()) { setEditingChecklistId(null); return }
+    try {
+      await updateChecklist(editingChecklistId, { title: editingChecklistTitle.trim() })
+      await refetch()
+    } finally {
+      setEditingChecklistId(null)
+    }
+  }
+
+  // チェックリストアイテムテキスト インライン編集
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemText, setEditingItemText] = useState('')
+
+  const startEditItem = (itemId: string, currentText: string) => {
+    setEditingItemId(itemId)
+    setEditingItemText(currentText)
+  }
+
+  const saveItemText = async () => {
+    if (!editingItemId || !editingItemText.trim()) { setEditingItemId(null); return }
+    try {
+      await updateChecklistItem(editingItemId, { text: editingItemText.trim() })
+      await refetch()
+    } finally {
+      setEditingItemId(null)
+    }
   }
 
   return (
@@ -141,28 +134,13 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
           <>
             {/* タイトル */}
             <div className="mb-4 pr-8">
-              {editingTitle ? (
-                <input
-                  ref={titleRef}
-                  value={titleValue}
-                  onChange={e => setTitleValue(e.target.value)}
-                  onBlur={saveTitle}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') saveTitle()
-                    if (e.key === 'Escape') setEditingTitle(false)
-                  }}
-                  className="text-lg font-bold w-full border-b-2 border-blue-400 focus:outline-none"
-                  disabled={savingField === 'title'}
-                />
-              ) : (
-                <h2
-                  className="text-lg font-bold cursor-pointer hover:bg-gray-100 rounded px-1 -mx-1"
-                  onClick={startEditTitle}
-                  title="クリックして編集"
-                >
-                  {card.title}
-                </h2>
-              )}
+              <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">タイトル</label>
+              <input
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                className="text-base font-bold w-full border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="タイトルを入力"
+              />
             </div>
 
             {/* ラベル */}
@@ -176,7 +154,7 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                   + ラベル管理
                 </button>
               </div>
-              {card.labels.length > 0 && (
+              {card.labels.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {card.labels.map(l => (
                     <span
@@ -188,38 +166,65 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                     </span>
                   ))}
                 </div>
+              ) : (
+                <span className="text-xs text-gray-400">なし</span>
               )}
             </div>
 
             {/* 説明 */}
             <div className="mb-4">
-              <div className="text-xs font-semibold text-gray-400 uppercase mb-1">説明</div>
-              {editingDesc ? (
-                <textarea
-                  ref={descRef}
-                  value={descValue}
-                  onChange={e => setDescValue(e.target.value)}
-                  onBlur={saveDesc}
-                  onKeyDown={e => {
-                    if (e.key === 'Escape') setEditingDesc(false)
-                  }}
-                  rows={3}
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-                  disabled={savingField === 'desc'}
-                />
-              ) : (
-                <div
-                  className="text-sm text-gray-700 whitespace-pre-wrap cursor-pointer hover:bg-gray-100 rounded px-1 -mx-1 min-h-[2rem]"
-                  onClick={startEditDesc}
-                  title="クリックして編集"
+              <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">説明</label>
+              <textarea
+                value={editDesc}
+                onChange={e => setEditDesc(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                placeholder="説明を追加..."
+              />
+            </div>
+
+            {/* 優先度・期日 */}
+            <div className="mb-4 flex gap-4 flex-wrap">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">優先度</label>
+                <select
+                  value={editPriority}
+                  onChange={e => setEditPriority(e.target.value as 'high' | 'medium' | 'low')}
+                  className="border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
                 >
-                  {card.description || <span className="text-gray-400 italic">説明を追加...</span>}
-                </div>
+                  <option value="high">高 (high)</option>
+                  <option value="medium">中 (medium)</option>
+                  <option value="low">低 (low)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">期日</label>
+                <input
+                  type="date"
+                  value={editDueDate}
+                  onChange={e => setEditDueDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            </div>
+
+            {/* 一括保存ボタン */}
+            <div className="mb-5 flex items-center gap-3">
+              <button
+                onClick={handleSave}
+                disabled={!isDirty || saving || !editTitle.trim()}
+                className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+              >
+                {saving && <Spinner className="w-3.5 h-3.5 text-white" />}
+                保存
+              </button>
+              {isDirty && !saving && (
+                <span className="text-xs text-orange-500">未保存の変更があります</span>
               )}
             </div>
 
             {/* チェックリスト */}
-            <div className="mb-4">
+            <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs font-semibold text-gray-400 uppercase">チェックリスト</div>
                 <CreateChecklistForm cardId={card.id} onCreated={refetch} />
@@ -231,10 +236,30 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                   const total = cl.items.length
                   const pct = total ? Math.round((done / total) * 100) : 0
                   return (
-                    <div key={cl.id} className="mb-3">
-                      <div className="flex justify-between text-sm font-semibold mb-1">
-                        <span>{cl.title}</span>
-                        <span className="text-gray-400 text-xs">{done}/{total} ({pct}%)</span>
+                    <div key={cl.id} className="mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        {editingChecklistId === cl.id ? (
+                          <input
+                            autoFocus
+                            value={editingChecklistTitle}
+                            onChange={e => setEditingChecklistTitle(e.target.value)}
+                            onBlur={saveChecklistTitle}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); saveChecklistTitle() }
+                              if (e.key === 'Escape') setEditingChecklistId(null)
+                            }}
+                            className="text-sm font-semibold flex-1 mr-2 border-b-2 border-blue-400 focus:outline-none"
+                          />
+                        ) : (
+                          <span
+                            className="text-sm font-semibold cursor-pointer hover:bg-gray-100 rounded px-1 -mx-1"
+                            onDoubleClick={() => startEditChecklistTitle(cl.id, cl.title)}
+                            title="ダブルクリックして編集"
+                          >
+                            {cl.title}
+                          </span>
+                        )}
+                        <span className="text-gray-400 text-xs ml-2 flex-shrink-0">{done}/{total} ({pct}%)</span>
                       </div>
                       <div className="h-1.5 bg-gray-200 rounded mb-2 overflow-hidden">
                         <div
@@ -250,46 +275,35 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                               type="checkbox"
                               checked={item.isCompleted}
                               onChange={() => handleToggleItem(item.id)}
-                              className="cursor-pointer"
+                              className="cursor-pointer flex-shrink-0"
                             />
-                            <span className={`text-sm ${item.isCompleted ? 'line-through text-gray-400' : ''}`}>
-                              {item.text}
-                            </span>
+                            {editingItemId === item.id ? (
+                              <input
+                                autoFocus
+                                value={editingItemText}
+                                onChange={e => setEditingItemText(e.target.value)}
+                                onBlur={saveItemText}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') { e.preventDefault(); saveItemText() }
+                                  if (e.key === 'Escape') setEditingItemId(null)
+                                }}
+                                className="text-sm flex-1 border-b border-blue-400 focus:outline-none"
+                              />
+                            ) : (
+                              <span
+                                className={`text-sm cursor-pointer hover:bg-gray-100 rounded px-0.5 flex-1 ${item.isCompleted ? 'line-through text-gray-400' : ''}`}
+                                onDoubleClick={() => startEditItem(item.id, item.text)}
+                                title="ダブルクリックして編集"
+                              >
+                                {item.text}
+                              </span>
+                            )}
                           </div>
                         ))}
                       <CreateChecklistItemForm checklistId={cl.id} onCreated={refetch} />
                     </div>
                   )
                 })}
-            </div>
-
-            {/* 優先度・期日 */}
-            <div className="border-t pt-3 flex gap-4 items-center flex-wrap">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <label className="font-semibold text-gray-400 uppercase">優先度</label>
-                <select
-                  value={card.priority}
-                  onChange={e => savePriority(e.target.value)}
-                  disabled={savingField === 'priority'}
-                  className="border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer"
-                >
-                  <option value="high">高 (high)</option>
-                  <option value="medium">中 (medium)</option>
-                  <option value="low">低 (low)</option>
-                </select>
-                {savingField === 'priority' && <Spinner className="w-3 h-3" />}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <label className="font-semibold text-gray-400 uppercase">期日</label>
-                <input
-                  type="date"
-                  value={card.dueDate ?? ''}
-                  onChange={e => saveDueDate(e.target.value)}
-                  disabled={savingField === 'dueDate'}
-                  className="border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
-                />
-                {savingField === 'dueDate' && <Spinner className="w-3 h-3" />}
-              </div>
             </div>
           </>
         )}

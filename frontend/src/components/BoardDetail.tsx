@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import type { DropResult } from '@hello-pangea/dnd'
 import { useBoardDetail } from '../hooks/useBoardDetail'
 import { updateList, updateListPosition } from '../api/lists'
 import { updateCardPosition } from '../api/cards'
@@ -19,13 +20,6 @@ const PRIORITY_LABEL: Record<string, string> = {
   high: '高', medium: '中', low: '低',
 }
 
-function calcPosition(prev: number | undefined, next: number | undefined): number {
-  if (prev === undefined && next === undefined) return 1024
-  if (prev === undefined) return next! / 2
-  if (next === undefined) return prev + 1024
-  return (prev + next) / 2
-}
-
 export default function BoardDetail() {
   const { boardId } = useParams<{ boardId: string }>()
   const navigate = useNavigate()
@@ -36,9 +30,16 @@ export default function BoardDetail() {
   const listTitleInputRef = useRef<HTMLInputElement>(null)
 
   // ローカルリスト状態（楽観的更新用）
+  // ※ position ソートはここだけで行い、レンダー時は再ソートしない
   const [localLists, setLocalLists] = useState<TaskList[]>([])
   useEffect(() => {
-    if (board) setLocalLists([...board.lists].sort((a, b) => a.position - b.position))
+    if (board) {
+      setLocalLists(
+        [...board.lists]
+          .sort((a, b) => a.position - b.position)
+          .map(l => ({ ...l, cards: [...l.cards].sort((a, b) => a.position - b.position) }))
+      )
+    }
   }, [board])
 
   const startEditListTitle = (listId: string, currentTitle: string) => {
@@ -63,7 +64,6 @@ export default function BoardDetail() {
     if (source.droppableId === destination.droppableId && source.index === destination.index) return
 
     if (type === 'LIST') {
-      // リスト並べ替え
       const newLists = [...localLists]
       const [moved] = newLists.splice(source.index, 1)
       newLists.splice(destination.index, 0, moved)
@@ -71,44 +71,45 @@ export default function BoardDetail() {
 
       const prevPos = newLists[destination.index - 1]?.position
       const nextPos = newLists[destination.index + 1]?.position
-      const newPosition = calcPosition(prevPos, nextPos)
       try {
         await updateListPosition(moved.id, { prevPosition: prevPos ?? null, nextPosition: nextPos ?? null })
       } catch {
+        // 失敗時はサーバーデータに戻す
+      } finally {
         await refetch()
       }
     } else {
-      // カード並べ替え / 移動
-      const srcList = localLists.find(l => l.id === source.droppableId)!
-      const dstList = localLists.find(l => l.id === destination.droppableId)!
-      const srcCards = [...srcList.cards].sort((a, b) => a.position - b.position)
-      const dstCards = source.droppableId === destination.droppableId
-        ? srcCards
-        : [...dstList.cards].sort((a, b) => a.position - b.position)
+      // カード並べ替え / リスト間移動
+      const srcListIdx = localLists.findIndex(l => l.id === source.droppableId)
+      const dstListIdx = localLists.findIndex(l => l.id === destination.droppableId)
+      if (srcListIdx === -1 || dstListIdx === -1) return
+
+      const newLists = localLists.map(l => ({ ...l, cards: [...l.cards] }))
+      const srcCards = newLists[srcListIdx].cards
+      const dstCards = newLists[dstListIdx].cards
 
       const [movedCard] = srcCards.splice(source.index, 1)
-      const targetCards = source.droppableId === destination.droppableId ? srcCards : dstCards
-      targetCards.splice(destination.index, 0, movedCard)
 
-      // 楽観的更新
-      const newLists = localLists.map(l => {
-        if (l.id === source.droppableId) return { ...l, cards: srcCards }
-        if (l.id === destination.droppableId) return { ...l, cards: targetCards }
-        return l
-      })
+      if (srcListIdx === dstListIdx) {
+        srcCards.splice(destination.index, 0, movedCard)
+      } else {
+        dstCards.splice(destination.index, 0, movedCard)
+      }
+
       setLocalLists(newLists)
 
-      const sortedTarget = targetCards
-      const prevPos = sortedTarget[destination.index - 1]?.position
-      const nextPos = sortedTarget[destination.index + 1]?.position
+      const targetCards = srcListIdx === dstListIdx ? srcCards : dstCards
+      const prevPos = targetCards[destination.index - 1]?.position
+      const nextPos = targetCards[destination.index + 1]?.position
       try {
         await updateCardPosition(movedCard.id, {
-          listId: destination.droppableId !== source.droppableId ? destination.droppableId : null,
+          listId: dstListIdx !== srcListIdx ? destination.droppableId : null,
           prevPosition: prevPos ?? null,
           nextPosition: nextPos ?? null,
         })
-        await refetch()
       } catch {
+        // 失敗時はサーバーデータに戻す
+      } finally {
         await refetch()
       }
     }
@@ -148,81 +149,95 @@ export default function BoardDetail() {
               {...provided.droppableProps}
               className="relative flex-1 overflow-x-auto p-3 flex gap-3 items-start bg-blue-500/20"
             >
-              {localLists.map((list, listIndex) => {
-                const sortedCards = [...list.cards].sort((a, b) => a.position - b.position)
-                return (
-                  <Draggable key={list.id} draggableId={`list-${list.id}`} index={listIndex}>
-                    {(listProvided, listSnapshot) => (
-                      <div
-                        ref={listProvided.innerRef}
-                        {...listProvided.draggableProps}
-                        className={`w-72 flex-shrink-0 bg-gray-100 rounded-md flex flex-col ${listSnapshot.isDragging ? 'shadow-2xl rotate-1' : ''}`}
-                      >
-                        <div
+              {localLists.map((list, listIndex) => (
+                <Draggable key={list.id} draggableId={`list-${list.id}`} index={listIndex}>
+                  {(listProvided, listSnapshot) => (
+                    <div
+                      ref={listProvided.innerRef}
+                      {...listProvided.draggableProps}
+                      className={`w-72 flex-shrink-0 bg-gray-100 rounded-md flex flex-col ${listSnapshot.isDragging ? 'shadow-2xl rotate-1' : ''}`}
+                    >
+                      {/* リストヘッダー */}
+                      <div className="px-3 py-2 font-bold text-sm text-gray-700 flex items-center gap-1">
+                        {/* ドラッグハンドル */}
+                        <span
                           {...listProvided.dragHandleProps}
-                          className="px-3 py-2 font-bold text-sm text-gray-700"
+                          className="text-gray-300 hover:text-gray-500 cursor-grab select-none text-base leading-none"
+                          title="ドラッグして並べ替え"
                         >
-                          {editingListId === list.id ? (
-                            <input
-                              ref={listTitleInputRef}
-                              value={editingListTitle}
-                              onChange={e => setEditingListTitle(e.target.value)}
-                              onBlur={saveListTitle}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') saveListTitle()
-                                if (e.key === 'Escape') setEditingListId(null)
-                              }}
-                              onClick={e => e.stopPropagation()}
-                              className="w-full font-bold text-sm bg-white border-b-2 border-blue-400 focus:outline-none px-0"
-                            />
-                          ) : (
-                            <span
-                              onDoubleClick={() => startEditListTitle(list.id, list.title)}
-                              className="cursor-pointer hover:bg-gray-200 rounded px-1 -mx-1 block"
-                              title="ダブルクリックして編集"
-                            >
-                              {list.title}
-                            </span>
-                          )}
-                        </div>
-
-                        <Droppable droppableId={list.id} type="CARD">
-                          {(cardProvided, cardSnapshot) => (
-                            <div
-                              ref={cardProvided.innerRef}
-                              {...cardProvided.droppableProps}
-                              className={`px-2 pb-1 flex flex-col gap-1.5 min-h-[8px] ${cardSnapshot.isDraggingOver ? 'bg-blue-50' : ''}`}
-                            >
-                              {sortedCards.map((card, cardIndex) => (
-                                <Draggable key={card.id} draggableId={card.id} index={cardIndex}>
-                                  {(cardDraggable, cardDragging) => (
-                                    <div
-                                      ref={cardDraggable.innerRef}
-                                      {...cardDraggable.draggableProps}
-                                      {...cardDraggable.dragHandleProps}
-                                    >
-                                      <CardTile
-                                        card={card}
-                                        isDragging={cardDragging.isDragging}
-                                        onClick={() => setSelectedCardId(card.id)}
-                                      />
-                                    </div>
-                                  )}
-                                </Draggable>
-                              ))}
-                              {cardProvided.placeholder}
-                            </div>
-                          )}
-                        </Droppable>
-
-                        <div className="px-2 pb-2">
-                          <CreateCardForm listId={list.id} onCreated={refetch} />
-                        </div>
+                          ⠿
+                        </span>
+                        {editingListId === list.id ? (
+                          <input
+                            ref={listTitleInputRef}
+                            value={editingListTitle}
+                            onChange={e => setEditingListTitle(e.target.value)}
+                            onBlur={saveListTitle}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveListTitle()
+                              if (e.key === 'Escape') setEditingListId(null)
+                            }}
+                            className="flex-1 font-bold text-sm bg-white border-b-2 border-blue-400 focus:outline-none"
+                          />
+                        ) : (
+                          <span
+                            onDoubleClick={() => startEditListTitle(list.id, list.title)}
+                            className="flex-1 cursor-pointer hover:bg-gray-200 rounded px-1"
+                            title="ダブルクリックして編集"
+                          >
+                            {list.title}
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </Draggable>
-                )
-              })}
+
+                      {/* カード一覧 */}
+                      <Droppable droppableId={list.id} type="CARD">
+                        {(cardProvided, cardSnapshot) => (
+                          <div
+                            ref={cardProvided.innerRef}
+                            {...cardProvided.droppableProps}
+                            className={`px-2 pb-1 flex flex-col gap-1.5 min-h-[8px] transition-colors ${cardSnapshot.isDraggingOver ? 'bg-blue-50 rounded' : ''}`}
+                          >
+                            {/* ※ ソートしない – localLists のインデックス順をそのまま使う */}
+                            {list.cards.map((card, cardIndex) => (
+                              <Draggable key={card.id} draggableId={card.id} index={cardIndex}>
+                                {(cardDraggable, cardDragging) => (
+                                  <div
+                                    ref={cardDraggable.innerRef}
+                                    {...cardDraggable.draggableProps}
+                                    className={`bg-white rounded shadow-sm hover:shadow-md transition flex items-stretch ${cardDragging.isDragging ? 'shadow-xl rotate-1 opacity-90' : ''}`}
+                                  >
+                                    {/* カードドラッグハンドル */}
+                                    <div
+                                      {...cardDraggable.dragHandleProps}
+                                      className="flex items-center px-1.5 text-gray-200 hover:text-gray-400 cursor-grab select-none rounded-l"
+                                      title="ドラッグして並べ替え"
+                                    >
+                                      ⠿
+                                    </div>
+                                    {/* クリッカブルエリア */}
+                                    <div
+                                      className="flex-1 cursor-pointer"
+                                      onClick={() => setSelectedCardId(card.id)}
+                                    >
+                                      <CardTile card={card} />
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {cardProvided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+
+                      <div className="px-2 pb-2">
+                        <CreateCardForm listId={list.id} onCreated={refetch} />
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
               {provided.placeholder}
               <CreateListForm boardId={board.id} onCreated={refetch} />
 
@@ -247,7 +262,7 @@ export default function BoardDetail() {
   )
 }
 
-function CardTile({ card, onClick, isDragging }: { card: CardSummary; onClick: () => void; isDragging: boolean }) {
+function CardTile({ card }: { card: CardSummary }) {
   const today = new Date().toISOString().slice(0, 10)
   const dueCls = !card.dueDate
     ? ''
@@ -258,10 +273,7 @@ function CardTile({ card, onClick, isDragging }: { card: CardSummary; onClick: (
         : 'text-gray-500'
 
   return (
-    <button
-      onClick={onClick}
-      className={`bg-white rounded px-2.5 py-2 shadow-sm text-left hover:shadow-md transition w-full cursor-pointer ${isDragging ? 'shadow-xl rotate-1 opacity-90' : ''}`}
-    >
+    <div className="px-2.5 py-2 text-left w-full">
       {card.labels.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-1">
           {card.labels.map(l => (
@@ -284,6 +296,6 @@ function CardTile({ card, onClick, isDragging }: { card: CardSummary; onClick: (
           <span className={dueCls}>📅 {card.dueDate}</span>
         )}
       </div>
-    </button>
+    </div>
   )
 }
