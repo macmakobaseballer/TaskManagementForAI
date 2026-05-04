@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchLabelsByBoard, createLabel } from '../api/labels'
 import type { Label } from '../types/api'
+import Spinner from './Spinner'
 
 const PRESET_COLORS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',
@@ -101,7 +102,7 @@ export default function LabelModal({ boardId, onClose, onLabelsChanged }: Props)
             disabled={!name.trim() || submitting}
             className="w-full px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            {submitting ? '追加中...' : '追加'}
+            {submitting ? <span className="flex items-center justify-center gap-1.5"><Spinner className="w-3.5 h-3.5 text-white" />追加中</span> : '追加'}
           </button>
         </div>
       </div>

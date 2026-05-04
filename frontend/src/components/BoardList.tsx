@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBoards } from '../hooks/useBoards'
 import CreateBoardModal from './CreateBoardModal'
+import Spinner from './Spinner'
 
 const BG_COLORS = [
   'bg-blue-600', 'bg-yellow-600', 'bg-green-700',
@@ -13,13 +14,25 @@ export default function BoardList() {
   const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
 
-  if (loading) return <div className="p-8 text-gray-500">読み込み中...</div>
   if (error) return <div className="p-8 text-red-600">エラー: {error}</div>
+
+  // 初回ロード（データなし）はフルスピナー
+  if (loading && boards.length === 0) {
+    return (
+      <div className="p-8 flex items-center gap-2 text-gray-500">
+        <Spinner />
+        <span>読み込み中...</span>
+      </div>
+    )
+  }
 
   return (
     <main className="p-8">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold">あなたのボード</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold">あなたのボード</h2>
+          {loading && <Spinner className="w-4 h-4" />}
+        </div>
         <button
           onClick={() => setShowCreate(true)}
           className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"

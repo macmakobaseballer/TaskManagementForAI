@@ -3,6 +3,7 @@ import { useCardDetail } from '../hooks/useCardDetail'
 import CreateChecklistForm from './CreateChecklistForm'
 import CreateChecklistItemForm from './CreateChecklistItemForm'
 import LabelModal from './LabelModal'
+import Spinner from './Spinner'
 
 interface Props {
   cardId: string
@@ -27,7 +28,17 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
           ×
         </button>
 
-        {loading && <p className="text-gray-500">読み込み中...</p>}
+        {loading && !card && (
+          <div className="flex items-center gap-2 text-gray-500 py-4">
+            <Spinner />
+            <span>読み込み中...</span>
+          </div>
+        )}
+        {loading && card && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2">
+            <Spinner className="w-4 h-4" />
+          </div>
+        )}
         {error && <p className="text-red-600">エラー: {error}</p>}
         {card && (
           <>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createBoard } from '../api/boards'
+import Spinner from './Spinner'
 
 interface Props {
   isOpen: boolean
@@ -73,7 +74,7 @@ export default function CreateBoardModal({ isOpen, onClose, onCreated }: Props) 
             disabled={!title.trim() || submitting}
             className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            {submitting ? '作成中...' : '作成'}
+            {submitting ? <span className="flex items-center gap-1.5"><Spinner className="w-3.5 h-3.5 text-white" />作成中</span> : '作成'}
           </button>
         </div>
       </div>

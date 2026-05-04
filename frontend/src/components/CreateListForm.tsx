@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createList } from '../api/lists'
+import Spinner from './Spinner'
 
 interface Props {
   boardId: string
@@ -70,7 +71,7 @@ export default function CreateListForm({ boardId, onCreated }: Props) {
           disabled={!title.trim() || submitting}
           className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
-          {submitting ? '追加中...' : 'リストを追加'}
+          {submitting ? <span className="flex items-center gap-1.5"><Spinner className="w-3.5 h-3.5 text-white" />追加中</span> : 'リストを追加'}
         </button>
         <button onClick={cancel} className="text-gray-500 hover:text-gray-700 text-lg leading-none cursor-pointer">×</button>
       </div>

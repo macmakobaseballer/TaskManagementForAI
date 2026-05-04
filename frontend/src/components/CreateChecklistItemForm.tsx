@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createChecklistItem } from '../api/checklists'
+import Spinner from './Spinner'
 
 interface Props {
   checklistId: string
@@ -67,7 +68,7 @@ export default function CreateChecklistItemForm({ checklistId, onCreated }: Prop
         disabled={!text.trim() || submitting}
         className="px-2.5 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
       >
-        {submitting ? '...' : '追加'}
+        {submitting ? <Spinner className="w-3.5 h-3.5 text-white" /> : '追加'}
       </button>
       <button onClick={cancel} className="text-gray-500 hover:text-gray-700 text-base leading-none cursor-pointer">×</button>
     </div>
