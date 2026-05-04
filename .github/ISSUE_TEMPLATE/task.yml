@@ -1,0 +1,31 @@
+name: 開発タスク
+description: 実装・リファクタ・インフラ等の作業チケット
+title: "task: "
+labels: ["task"]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: タスク概要
+      placeholder: 例）PostgreSQL の Docker Compose 設定を追加する
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 詳細・背景
+    validations:
+      required: false
+
+  - type: textarea
+    id: todos
+    attributes:
+      label: 作業リスト
+      description: 完了条件となる作業を列挙してください
+      placeholder: |
+        - [ ] docker-compose.yml に postgres サービスを追加
+        - [ ] 環境変数を .env.example に記載
+        - [ ] README に起動手順を追記
+    validations:
+      required: false
