@@ -32,6 +32,19 @@ public class ChecklistItem {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    protected ChecklistItem() {}
+
+    ChecklistItem(UUID id, Checklist checklist, String text, Boolean isCompleted,
+                  Double position, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.id = id;
+        this.checklist = checklist;
+        this.text = text;
+        this.isCompleted = isCompleted;
+        this.position = position;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public UUID getId() { return id; }
     public Checklist getChecklist() { return checklist; }
     public String getText() { return text; }

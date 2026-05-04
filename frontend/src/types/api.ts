@@ -63,3 +63,34 @@ export interface CardDetail {
   labels: Label[]
   checklists: Checklist[]
 }
+
+export interface CreateBoardRequest {
+  title: string
+}
+
+export interface CreateListRequest {
+  title: string
+  boardId: string
+}
+
+export interface CreateCardRequest {
+  title: string
+  listId: string
+  priority?: 'high' | 'medium' | 'low'
+  dueDate?: string | null
+}
+
+export interface CreateLabelRequest {
+  name: string
+  color: string
+  boardId: string
+}
+
+export interface CreateChecklistRequest {
+  title: string
+  cardId: string
+}
+
+export interface CreateChecklistItemRequest {
+  text: string
+}

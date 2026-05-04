@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBoardDetail } from '../hooks/useBoardDetail'
 import CardDetail from './CardDetail'
+import CreateListForm from './CreateListForm'
+import CreateCardForm from './CreateCardForm'
 import type { CardSummary } from '../types/api'
 
 const PRIORITY_BADGE: Record<string, string> = {
@@ -16,7 +18,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 export default function BoardDetail() {
   const { boardId } = useParams<{ boardId: string }>()
   const navigate = useNavigate()
-  const { board, loading, error } = useBoardDetail(boardId ?? '')
+  const { board, loading, error, refetch } = useBoardDetail(boardId ?? '')
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
 
   if (loading) return <div className="p-8 text-gray-500">読み込み中...</div>
@@ -43,7 +45,7 @@ export default function BoardDetail() {
           return (
             <div key={list.id} className="w-72 flex-shrink-0 bg-gray-100 rounded-md flex flex-col">
               <div className="px-3 py-2 font-bold text-sm text-gray-700">{list.title}</div>
-              <div className="px-2 pb-2 flex flex-col gap-1.5">
+              <div className="px-2 pb-1 flex flex-col gap-1.5">
                 {sortedCards.map(card => (
                   <CardTile
                     key={card.id}
@@ -52,14 +54,19 @@ export default function BoardDetail() {
                   />
                 ))}
               </div>
+              <div className="px-2 pb-2">
+                <CreateCardForm listId={list.id} onCreated={refetch} />
+              </div>
             </div>
           )
         })}
+        <CreateListForm boardId={board.id} onCreated={refetch} />
       </div>
 
       {selectedCardId && (
         <CardDetail
           cardId={selectedCardId}
+          boardId={board.id}
           onClose={() => setSelectedCardId(null)}
         />
       )}

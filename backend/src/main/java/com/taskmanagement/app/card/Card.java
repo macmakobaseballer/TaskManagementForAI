@@ -59,6 +59,20 @@ public class Card {
     @OrderBy("position ASC")
     private List<Checklist> checklists = new ArrayList<>();
 
+    protected Card() {}
+
+    Card(UUID id, TaskList taskList, String title, Priority priority, LocalDate dueDate,
+         Double position, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.id = id;
+        this.taskList = taskList;
+        this.title = title;
+        this.priority = priority;
+        this.dueDate = dueDate;
+        this.position = position;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public UUID getId() { return id; }
     public UUID getListId() { return listId; }
     public TaskList getTaskList() { return taskList; }

@@ -29,6 +29,15 @@ public class Board {
     @OrderBy("position ASC")
     private List<TaskList> lists = new ArrayList<>();
 
+    protected Board() {}
+
+    Board(UUID id, String title, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.id = id;
+        this.title = title;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

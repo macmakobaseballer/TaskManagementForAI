@@ -24,4 +24,7 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     @Query("SELECT c FROM Card c LEFT JOIN FETCH c.labels WHERE c.id = :cardId")
     Optional<Card> findCardWithLabels(@Param("cardId") UUID cardId);
+
+    @Query("SELECT MAX(c.position) FROM Card c WHERE c.listId = :listId")
+    Optional<Double> findMaxPositionByListId(@Param("listId") UUID listId);
 }

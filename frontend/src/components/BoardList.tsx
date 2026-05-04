@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBoards } from '../hooks/useBoards'
+import CreateBoardModal from './CreateBoardModal'
 
 const BG_COLORS = [
   'bg-blue-600', 'bg-yellow-600', 'bg-green-700',
@@ -7,17 +9,26 @@ const BG_COLORS = [
 ]
 
 export default function BoardList() {
-  const { boards, loading, error } = useBoards()
+  const { boards, loading, error, refetch } = useBoards()
   const navigate = useNavigate()
+  const [showCreate, setShowCreate] = useState(false)
 
   if (loading) return <div className="p-8 text-gray-500">読み込み中...</div>
   if (error) return <div className="p-8 text-red-600">エラー: {error}</div>
 
   return (
     <main className="p-8">
-      <h2 className="text-lg font-bold mb-5">あなたのボード</h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-bold">あなたのボード</h2>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+        >
+          + 新しいボード
+        </button>
+      </div>
       {boards.length === 0 && (
-        <p className="text-gray-500">ボードがありません（シードデータを確認してください）</p>
+        <p className="text-gray-500">ボードがありません。新しいボードを作成してください。</p>
       )}
       <div className="flex flex-wrap gap-4">
         {boards.map((board, i) => (
@@ -30,6 +41,12 @@ export default function BoardList() {
           </button>
         ))}
       </div>
+
+      <CreateBoardModal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={refetch}
+      />
     </main>
   )
 }
