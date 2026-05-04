@@ -47,4 +47,8 @@ public class Label {
     public String getColor() { return color; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
+
+    void setName(String name) { this.name = name; }
+    void setColor(String color) { this.color = color; }
+    void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

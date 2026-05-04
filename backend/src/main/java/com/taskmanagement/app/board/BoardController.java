@@ -32,4 +32,11 @@ public class BoardController {
     public ResponseEntity<BoardDetailResponse> getBoardDetail(@PathVariable UUID boardId) {
         return ResponseEntity.ok(boardService.getBoardDetail(boardId));
     }
+
+    @PutMapping("/{boardId}")
+    public ResponseEntity<BoardSummaryResponse> updateBoard(
+            @PathVariable UUID boardId,
+            @RequestBody @Valid BoardUpdateRequest request) {
+        return ResponseEntity.ok(boardService.updateBoard(boardId, request));
+    }
 }

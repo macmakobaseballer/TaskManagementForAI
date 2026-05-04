@@ -38,6 +38,15 @@ public class BoardService {
         return BoardSummaryResponse.from(boardRepository.save(board));
     }
 
+    @Transactional
+    public BoardSummaryResponse updateBoard(UUID boardId, BoardUpdateRequest request) {
+        Board board = boardRepository.findById(boardId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        board.setTitle(request.title().strip());
+        board.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        return BoardSummaryResponse.from(boardRepository.save(board));
+    }
+
     public List<BoardSummaryResponse> getAllBoards() {
         return boardRepository.findAll(Sort.by("createdAt"))
             .stream()

@@ -27,4 +27,11 @@ public class LabelController {
     public ResponseEntity<LabelResponse> createLabel(@RequestBody @Valid LabelCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(labelService.createLabel(request));
     }
+
+    @PutMapping("/{labelId}")
+    public ResponseEntity<LabelResponse> updateLabel(
+            @PathVariable UUID labelId,
+            @RequestBody @Valid LabelUpdateRequest request) {
+        return ResponseEntity.ok(labelService.updateLabel(labelId, request));
+    }
 }

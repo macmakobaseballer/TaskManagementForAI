@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useCardDetail } from '../hooks/useCardDetail'
+import { updateCard, toggleChecklistItem as apiToggle } from '../api/cards'
 import CreateChecklistForm from './CreateChecklistForm'
 import CreateChecklistItemForm from './CreateChecklistItemForm'
 import LabelModal from './LabelModal'
@@ -14,6 +15,102 @@ interface Props {
 export default function CardDetail({ cardId, boardId, onClose }: Props) {
   const { card, loading, error, refetch } = useCardDetail(cardId)
   const [showLabelModal, setShowLabelModal] = useState(false)
+
+  // インライン編集ステート
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleValue, setTitleValue] = useState('')
+  const [editingDesc, setEditingDesc] = useState(false)
+  const [descValue, setDescValue] = useState('')
+  const [savingField, setSavingField] = useState<string | null>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
+  const descRef = useRef<HTMLTextAreaElement>(null)
+
+  const startEditTitle = () => {
+    if (!card) return
+    setTitleValue(card.title)
+    setEditingTitle(true)
+    setTimeout(() => titleRef.current?.select(), 0)
+  }
+
+  const saveTitle = async () => {
+    if (!card || !titleValue.trim() || savingField) return
+    if (titleValue.trim() === card.title) { setEditingTitle(false); return }
+    setSavingField('title')
+    try {
+      await updateCard(card.id, {
+        title: titleValue.trim(),
+        description: card.description,
+        priority: card.priority,
+        dueDate: card.dueDate,
+      })
+      await refetch()
+    } finally {
+      setSavingField(null)
+      setEditingTitle(false)
+    }
+  }
+
+  const startEditDesc = () => {
+    if (!card) return
+    setDescValue(card.description ?? '')
+    setEditingDesc(true)
+    setTimeout(() => descRef.current?.focus(), 0)
+  }
+
+  const saveDesc = async () => {
+    if (!card || savingField) return
+    if (descValue === (card.description ?? '')) { setEditingDesc(false); return }
+    setSavingField('desc')
+    try {
+      await updateCard(card.id, {
+        title: card.title,
+        description: descValue || null,
+        priority: card.priority,
+        dueDate: card.dueDate,
+      })
+      await refetch()
+    } finally {
+      setSavingField(null)
+      setEditingDesc(false)
+    }
+  }
+
+  const savePriority = async (newPriority: string) => {
+    if (!card) return
+    setSavingField('priority')
+    try {
+      await updateCard(card.id, {
+        title: card.title,
+        description: card.description,
+        priority: newPriority as 'high' | 'medium' | 'low',
+        dueDate: card.dueDate,
+      })
+      await refetch()
+    } finally {
+      setSavingField(null)
+    }
+  }
+
+  const saveDueDate = async (newDate: string) => {
+    if (!card) return
+    setSavingField('dueDate')
+    try {
+      await updateCard(card.id, {
+        title: card.title,
+        description: card.description,
+        priority: card.priority,
+        dueDate: newDate || null,
+      })
+      await refetch()
+    } finally {
+      setSavingField(null)
+    }
+  }
+
+  const handleToggleItem = async (itemId: string) => {
+    await apiToggle(itemId)
+    await refetch()
+  }
 
   return (
     <div
@@ -42,8 +139,33 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
         {error && <p className="text-red-600">エラー: {error}</p>}
         {card && (
           <>
-            <h2 className="text-lg font-bold mb-4 pr-8">{card.title}</h2>
+            {/* タイトル */}
+            <div className="mb-4 pr-8">
+              {editingTitle ? (
+                <input
+                  ref={titleRef}
+                  value={titleValue}
+                  onChange={e => setTitleValue(e.target.value)}
+                  onBlur={saveTitle}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') saveTitle()
+                    if (e.key === 'Escape') setEditingTitle(false)
+                  }}
+                  className="text-lg font-bold w-full border-b-2 border-blue-400 focus:outline-none"
+                  disabled={savingField === 'title'}
+                />
+              ) : (
+                <h2
+                  className="text-lg font-bold cursor-pointer hover:bg-gray-100 rounded px-1 -mx-1"
+                  onClick={startEditTitle}
+                  title="クリックして編集"
+                >
+                  {card.title}
+                </h2>
+              )}
+            </div>
 
+            {/* ラベル */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-1">
                 <div className="text-xs font-semibold text-gray-400 uppercase">ラベル</div>
@@ -69,13 +191,34 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
               )}
             </div>
 
-            {card.description && (
-              <div className="mb-4">
-                <div className="text-xs font-semibold text-gray-400 uppercase mb-1">説明</div>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{card.description}</p>
-              </div>
-            )}
+            {/* 説明 */}
+            <div className="mb-4">
+              <div className="text-xs font-semibold text-gray-400 uppercase mb-1">説明</div>
+              {editingDesc ? (
+                <textarea
+                  ref={descRef}
+                  value={descValue}
+                  onChange={e => setDescValue(e.target.value)}
+                  onBlur={saveDesc}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') setEditingDesc(false)
+                  }}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                  disabled={savingField === 'desc'}
+                />
+              ) : (
+                <div
+                  className="text-sm text-gray-700 whitespace-pre-wrap cursor-pointer hover:bg-gray-100 rounded px-1 -mx-1 min-h-[2rem]"
+                  onClick={startEditDesc}
+                  title="クリックして編集"
+                >
+                  {card.description || <span className="text-gray-400 italic">説明を追加...</span>}
+                </div>
+              )}
+            </div>
 
+            {/* チェックリスト */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs font-semibold text-gray-400 uppercase">チェックリスト</div>
@@ -106,8 +249,8 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                             <input
                               type="checkbox"
                               checked={item.isCompleted}
-                              readOnly
-                              className="cursor-default"
+                              onChange={() => handleToggleItem(item.id)}
+                              className="cursor-pointer"
                             />
                             <span className={`text-sm ${item.isCompleted ? 'line-through text-gray-400' : ''}`}>
                               {item.text}
@@ -120,17 +263,43 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                 })}
             </div>
 
-            <div className="border-t pt-3 text-xs text-gray-400 flex gap-4">
-              <span>優先度: {card.priority}</span>
-              {card.dueDate && <span>期日: {card.dueDate}</span>}
+            {/* 優先度・期日 */}
+            <div className="border-t pt-3 flex gap-4 items-center flex-wrap">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <label className="font-semibold text-gray-400 uppercase">優先度</label>
+                <select
+                  value={card.priority}
+                  onChange={e => savePriority(e.target.value)}
+                  disabled={savingField === 'priority'}
+                  className="border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer"
+                >
+                  <option value="high">高 (high)</option>
+                  <option value="medium">中 (medium)</option>
+                  <option value="low">低 (low)</option>
+                </select>
+                {savingField === 'priority' && <Spinner className="w-3 h-3" />}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <label className="font-semibold text-gray-400 uppercase">期日</label>
+                <input
+                  type="date"
+                  value={card.dueDate ?? ''}
+                  onChange={e => saveDueDate(e.target.value)}
+                  disabled={savingField === 'dueDate'}
+                  className="border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+                {savingField === 'dueDate' && <Spinner className="w-3 h-3" />}
+              </div>
             </div>
           </>
         )}
       </div>
 
-      {showLabelModal && (
+      {showLabelModal && card && (
         <LabelModal
           boardId={boardId}
+          cardId={card.id}
+          cardLabelIds={card.labels.map(l => l.id)}
           onClose={() => setShowLabelModal(false)}
           onLabelsChanged={refetch}
         />

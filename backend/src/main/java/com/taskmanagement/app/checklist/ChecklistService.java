@@ -58,4 +58,32 @@ public class ChecklistService {
             UUID.randomUUID(), checklist, request.text().strip(), false, newPosition, now, now);
         return ChecklistItemResponse.from(checklistItemRepository.save(item));
     }
+
+    @Transactional
+    public ChecklistResponse updateChecklist(UUID checklistId, ChecklistUpdateRequest request) {
+        Checklist checklist = checklistRepository.findById(checklistId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Checklist not found"));
+        checklist.setTitle(request.title().strip());
+        checklist.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        Checklist saved = checklistRepository.save(checklist);
+        return ChecklistResponse.from(saved);
+    }
+
+    @Transactional
+    public ChecklistItemResponse updateChecklistItem(UUID itemId, ChecklistItemUpdateRequest request) {
+        ChecklistItem item = checklistItemRepository.findById(itemId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ChecklistItem not found"));
+        item.setText(request.text().strip());
+        item.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        return ChecklistItemResponse.from(checklistItemRepository.save(item));
+    }
+
+    @Transactional
+    public ChecklistItemResponse toggleChecklistItem(UUID itemId) {
+        ChecklistItem item = checklistItemRepository.findById(itemId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ChecklistItem not found"));
+        item.setIsCompleted(!item.getIsCompleted());
+        item.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        return ChecklistItemResponse.from(checklistItemRepository.save(item));
+    }
 }

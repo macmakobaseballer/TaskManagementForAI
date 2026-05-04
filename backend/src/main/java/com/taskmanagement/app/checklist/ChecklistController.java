@@ -29,4 +29,23 @@ public class ChecklistController {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(checklistService.createChecklistItem(checklistId, request));
     }
+
+    @PutMapping("/{checklistId}")
+    public ResponseEntity<ChecklistResponse> updateChecklist(
+            @PathVariable UUID checklistId,
+            @RequestBody @Valid ChecklistUpdateRequest request) {
+        return ResponseEntity.ok(checklistService.updateChecklist(checklistId, request));
+    }
+
+    @PutMapping("/items/{itemId}")
+    public ResponseEntity<ChecklistItemResponse> updateChecklistItem(
+            @PathVariable UUID itemId,
+            @RequestBody @Valid ChecklistItemUpdateRequest request) {
+        return ResponseEntity.ok(checklistService.updateChecklistItem(itemId, request));
+    }
+
+    @PatchMapping("/items/{itemId}/toggle")
+    public ResponseEntity<ChecklistItemResponse> toggleChecklistItem(@PathVariable UUID itemId) {
+        return ResponseEntity.ok(checklistService.toggleChecklistItem(itemId));
+    }
 }

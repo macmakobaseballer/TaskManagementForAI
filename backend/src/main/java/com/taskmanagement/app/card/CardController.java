@@ -26,4 +26,32 @@ public class CardController {
     public ResponseEntity<CardDetailResponse> getCardDetail(@PathVariable UUID cardId) {
         return ResponseEntity.ok(cardService.getCardDetail(cardId));
     }
+
+    @PutMapping("/{cardId}")
+    public ResponseEntity<CardDetailResponse> updateCard(
+            @PathVariable UUID cardId,
+            @RequestBody @Valid CardUpdateRequest request) {
+        return ResponseEntity.ok(cardService.updateCard(cardId, request));
+    }
+
+    @PatchMapping("/{cardId}/position")
+    public ResponseEntity<CardDetailResponse> updateCardPosition(
+            @PathVariable UUID cardId,
+            @RequestBody CardPositionUpdateRequest request) {
+        return ResponseEntity.ok(cardService.updateCardPosition(cardId, request));
+    }
+
+    @PostMapping("/{cardId}/labels/{labelId}")
+    public ResponseEntity<CardDetailResponse> addLabelToCard(
+            @PathVariable UUID cardId,
+            @PathVariable UUID labelId) {
+        return ResponseEntity.ok(cardService.addLabelToCard(cardId, labelId));
+    }
+
+    @DeleteMapping("/{cardId}/labels/{labelId}")
+    public ResponseEntity<CardDetailResponse> removeLabelFromCard(
+            @PathVariable UUID cardId,
+            @PathVariable UUID labelId) {
+        return ResponseEntity.ok(cardService.removeLabelFromCard(cardId, labelId));
+    }
 }

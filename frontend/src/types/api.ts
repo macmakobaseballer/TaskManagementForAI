@@ -94,3 +94,42 @@ export interface CreateChecklistRequest {
 export interface CreateChecklistItemRequest {
   text: string
 }
+
+export interface UpdateBoardRequest {
+  title: string
+}
+
+export interface UpdateListRequest {
+  title: string
+}
+
+export interface UpdateListPositionRequest {
+  prevPosition?: number | null
+  nextPosition?: number | null
+}
+
+export interface UpdateCardRequest {
+  title: string
+  description?: string | null
+  priority?: 'high' | 'medium' | 'low'
+  dueDate?: string | null
+}
+
+export interface UpdateCardPositionRequest {
+  listId?: string | null
+  prevPosition?: number | null
+  nextPosition?: number | null
+}
+
+export interface UpdateLabelRequest {
+  name: string
+  color: string
+}
+
+export interface UpdateChecklistRequest {
+  title: string
+}
+
+export interface UpdateChecklistItemRequest {
+  text: string
+}

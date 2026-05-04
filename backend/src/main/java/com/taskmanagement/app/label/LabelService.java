@@ -40,4 +40,14 @@ public class LabelService {
         Label label = new Label(UUID.randomUUID(), board, request.name().strip(), request.color(), now, now);
         return LabelResponse.from(labelRepository.save(label));
     }
+
+    @Transactional
+    public LabelResponse updateLabel(UUID labelId, LabelUpdateRequest request) {
+        Label label = labelRepository.findById(labelId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Label not found"));
+        label.setName(request.name().strip());
+        label.setColor(request.color());
+        label.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        return LabelResponse.from(labelRepository.save(label));
+    }
 }
