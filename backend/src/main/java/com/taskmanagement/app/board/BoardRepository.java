@@ -9,12 +9,12 @@ import java.util.UUID;
 
 public interface BoardRepository extends JpaRepository<Board, UUID> {
 
+    // Board + lists のみ取得（MultipleBagFetchException 回避のため cards は別クエリ）
     @Query("""
-        SELECT DISTINCT b FROM Board b
+        SELECT b FROM Board b
         LEFT JOIN FETCH b.lists l
-        LEFT JOIN FETCH l.cards c
         WHERE b.id = :boardId
-        ORDER BY l.position ASC, c.position ASC
+        ORDER BY l.position ASC
         """)
-    Optional<Board> findBoardWithListsAndCards(@Param("boardId") UUID boardId);
+    Optional<Board> findBoardWithLists(@Param("boardId") UUID boardId);
 }

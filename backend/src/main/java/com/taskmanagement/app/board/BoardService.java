@@ -4,6 +4,7 @@ import com.taskmanagement.app.card.Card;
 import com.taskmanagement.app.card.CardRepository;
 import com.taskmanagement.app.card.CardSummaryResponse;
 import com.taskmanagement.app.label.LabelResponse;
+import com.taskmanagement.app.list.TaskList;
 import com.taskmanagement.app.list.TaskListResponse;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -36,31 +37,29 @@ public class BoardService {
     }
 
     public BoardDetailResponse getBoardDetail(UUID boardId) {
-        Board board = boardRepository.findBoardWithListsAndCards(boardId)
+        // Q1: board + lists（cards は MultipleBagFetchException 回避のため別クエリ）
+        Board board = boardRepository.findBoardWithLists(boardId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        List<UUID> cardIds = board.getLists().stream()
-            .flatMap(list -> list.getCards().stream())
-            .map(Card::getId)
+        List<UUID> listIds = board.getLists().stream()
+            .map(taskList -> taskList.getId())
             .toList();
 
-        Map<UUID, List<LabelResponse>> labelsByCardId;
-        if (cardIds.isEmpty()) {
-            labelsByCardId = Map.of();
+        // Q2: 全リストのカード＋ラベルを一括取得し、listId でグループ化
+        Map<UUID, List<Card>> cardsByListId;
+        if (listIds.isEmpty()) {
+            cardsByListId = Map.of();
         } else {
-            labelsByCardId = cardRepository.findCardsWithLabels(cardIds)
+            cardsByListId = cardRepository.findCardsWithLabelsByListIds(listIds)
                 .stream()
-                .collect(Collectors.toMap(
-                    Card::getId,
-                    c -> c.getLabels().stream().map(LabelResponse::from).toList()
-                ));
+                .collect(Collectors.groupingBy(Card::getListId));
         }
-
-        final Map<UUID, List<LabelResponse>> labelsMap = labelsByCardId;
 
         List<TaskListResponse> listResponses = board.getLists().stream()
             .map(taskList -> {
-                List<CardSummaryResponse> cardResponses = taskList.getCards().stream()
+                List<CardSummaryResponse> cardResponses = cardsByListId
+                    .getOrDefault(taskList.getId(), List.of())
+                    .stream()
                     .map(card -> new CardSummaryResponse(
                         card.getId(),
                         card.getTitle(),
@@ -68,7 +67,7 @@ public class BoardService {
                         card.getPriority().name().toLowerCase(),
                         card.getDueDate(),
                         card.getPosition(),
-                        labelsMap.getOrDefault(card.getId(), List.of())
+                        card.getLabels().stream().map(LabelResponse::from).toList()
                     ))
                     .toList();
                 return new TaskListResponse(
