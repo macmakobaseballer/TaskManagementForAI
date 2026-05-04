@@ -1,0 +1,70 @@
+# ==========================================
+# Cursor 起動時のインデックス対象外設定
+# 目的: 不要ファイルの読み込みを減らして起動・応答を軽くする
+# ==========================================
+
+# Git / エディタ
+.git/
+.vscode/
+.idea/
+
+# JavaScript / TypeScript 依存物・成果物
+**/node_modules/
+**/.next/
+**/.nuxt/
+**/.turbo/
+**/dist/
+**/build/
+**/coverage/
+**/.cache/
+
+# Python 依存物・キャッシュ
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.tox/
+
+# ログ・一時ファイル
+**/*.log
+**/*.tmp
+**/*.temp
+**/.DS_Store
+
+# 環境変数・秘密情報
+.env
+.env.*
+**/*secret*
+**/*credential*
+**/*token*
+
+# 大きくなりがちなバイナリ類
+**/*.zip
+**/*.tar
+**/*.gz
+**/*.7z
+**/*.mp4
+**/*.mov
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.webp
+**/*.pdf
+
+# Java / Spring Boot 生成物・キャッシュ
+**/.gradle/
+**/target/
+**/out/
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+**/hs_err_pid*.log
+
+# Java IDE 補助ファイル
+**/.settings/
+**/.classpath
+**/.project
+

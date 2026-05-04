@@ -1,0 +1,23 @@
+# 機密設定ファイル
+.env
+.env.local
+.env.*.local
+
+# Gradle
+backend/.gradle/
+backend/build/
+!backend/gradle/wrapper/gradle-wrapper.jar
+
+# Java
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# ログ
+*.log

@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/taskmanagement_dev
+    username: taskmanager
+    password: password
+
+  jpa:
+    show-sql: true
