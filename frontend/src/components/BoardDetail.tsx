@@ -8,6 +8,7 @@ import { updateCardPosition } from '../api/cards'
 import CardDetail from './CardDetail'
 import CreateListForm from './CreateListForm'
 import CreateCardForm from './CreateCardForm'
+import LabelModal from './LabelModal'
 import Spinner from './Spinner'
 import type { TaskList, CardSummary } from '../types/api'
 
@@ -25,6 +26,7 @@ export default function BoardDetail() {
   const navigate = useNavigate()
   const { board, loading, error, refetch } = useBoardDetail(boardId ?? '')
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [showLabelManager, setShowLabelManager] = useState(false)
   const [editingListId, setEditingListId] = useState<string | null>(null)
   const [editingListTitle, setEditingListTitle] = useState('')
   const listTitleInputRef = useRef<HTMLInputElement>(null)
@@ -138,6 +140,12 @@ export default function BoardDetail() {
           ← 一覧へ
         </button>
         <span className="font-bold">{board.title}</span>
+        <button
+          onClick={() => setShowLabelManager(true)}
+          className="text-sm px-3 py-1 rounded bg-white/20 hover:bg-white/30 cursor-pointer ml-auto"
+        >
+          ラベル管理
+        </button>
         {loading && <Spinner className="w-4 h-4 text-white" />}
       </div>
 
@@ -239,6 +247,14 @@ export default function BoardDetail() {
           cardId={selectedCardId}
           boardId={board.id}
           onClose={() => setSelectedCardId(null)}
+        />
+      )}
+
+      {showLabelManager && (
+        <LabelModal
+          boardId={board.id}
+          onClose={() => setShowLabelManager(false)}
+          onLabelsChanged={refetch}
         />
       )}
     </div>
