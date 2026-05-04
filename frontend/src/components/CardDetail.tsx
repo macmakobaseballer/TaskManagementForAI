@@ -110,7 +110,7 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
       className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-12 overflow-y-auto"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl pt-6 px-6 pb-0 relative overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl leading-none px-2 cursor-pointer"
@@ -133,7 +133,7 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
         {card && (
           <>
             {/* タイトル */}
-            <div className="mb-4 pr-8">
+            <div className="mb-4">
               <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">タイトル</label>
               <input
                 value={editTitle}
@@ -292,14 +292,14 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
             </div>
 
             {/* 一括保存ボタン（最下部・全幅） */}
-            <div className="border-t pt-4 -mx-6 px-6 pb-0">
+            <div className="pb-2">
               {isDirty && !saving && (
                 <p className="text-xs text-orange-500 mb-2">未保存の変更があります</p>
               )}
               <button
                 onClick={handleSave}
                 disabled={!isDirty || saving || !editTitle.trim()}
-                className="w-full py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-b-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 {saving && <Spinner className="w-4 h-4 text-white" />}
                 保存
