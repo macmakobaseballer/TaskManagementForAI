@@ -110,7 +110,7 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
       className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-12 overflow-y-auto"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl pt-6 px-6 pb-0 relative overflow-hidden">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl leading-none px-2 cursor-pointer"
@@ -183,48 +183,8 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
               />
             </div>
 
-            {/* 優先度・期日 */}
-            <div className="mb-4 flex gap-4 flex-wrap">
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">優先度</label>
-                <select
-                  value={editPriority}
-                  onChange={e => setEditPriority(e.target.value as 'high' | 'medium' | 'low')}
-                  className="border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                >
-                  <option value="high">高 (high)</option>
-                  <option value="medium">中 (medium)</option>
-                  <option value="low">低 (low)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">期日</label>
-                <input
-                  type="date"
-                  value={editDueDate}
-                  onChange={e => setEditDueDate(e.target.value)}
-                  className="border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-            </div>
-
-            {/* 一括保存ボタン */}
-            <div className="mb-5 flex items-center gap-3">
-              <button
-                onClick={handleSave}
-                disabled={!isDirty || saving || !editTitle.trim()}
-                className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
-              >
-                {saving && <Spinner className="w-3.5 h-3.5 text-white" />}
-                保存
-              </button>
-              {isDirty && !saving && (
-                <span className="text-xs text-orange-500">未保存の変更があります</span>
-              )}
-            </div>
-
             {/* チェックリスト */}
-            <div className="border-t pt-4">
+            <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs font-semibold text-gray-400 uppercase">チェックリスト</div>
                 <CreateChecklistForm cardId={card.id} onCreated={refetch} />
@@ -304,6 +264,46 @@ export default function CardDetail({ cardId, boardId, onClose }: Props) {
                     </div>
                   )
                 })}
+            </div>
+
+            {/* 優先度・期日 */}
+            <div className="flex gap-4 flex-wrap border-t pt-4 mb-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">優先度</label>
+                <select
+                  value={editPriority}
+                  onChange={e => setEditPriority(e.target.value as 'high' | 'medium' | 'low')}
+                  className="border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                >
+                  <option value="high">高 (high)</option>
+                  <option value="medium">中 (medium)</option>
+                  <option value="low">低 (low)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase mb-1 block">期日</label>
+                <input
+                  type="date"
+                  value={editDueDate}
+                  onChange={e => setEditDueDate(e.target.value)}
+                  className="border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            </div>
+
+            {/* 一括保存ボタン（最下部・全幅） */}
+            <div className="border-t pt-4 -mx-6 px-6 pb-0">
+              {isDirty && !saving && (
+                <p className="text-xs text-orange-500 mb-2">未保存の変更があります</p>
+              )}
+              <button
+                onClick={handleSave}
+                disabled={!isDirty || saving || !editTitle.trim()}
+                className="w-full py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-b-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+              >
+                {saving && <Spinner className="w-4 h-4 text-white" />}
+                保存
+              </button>
             </div>
           </>
         )}
