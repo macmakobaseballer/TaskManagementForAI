@@ -61,7 +61,7 @@ public class TaskListService {
     }
 
     private double calcPosition(Double prev, Double next) {
-        if (prev == null && next == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "prevPosition or nextPosition required");
+        if (prev == null && next == null) return 1024.0;
         if (prev == null) return next / 2.0;
         if (next == null) return prev + 1024;
         return (prev + next) / 2.0;
