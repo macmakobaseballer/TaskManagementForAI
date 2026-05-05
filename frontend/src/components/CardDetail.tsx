@@ -357,7 +357,7 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
                       />
                     </div>
                     {[...cl.items].sort((a, b) => a.position - b.position).map(item => (
-                      <div key={item.id} className="flex items-center gap-2 py-0.5 group/item">
+                      <div key={item.id} className="flex items-center gap-2 py-0.5">
                         <input
                           type="checkbox"
                           checked={item.isCompleted}
@@ -388,7 +388,7 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
                         <button
                           onClick={() => handleDeleteItem(item.id)}
                           disabled={deletingItemId === item.id}
-                          className="p-0.5 rounded text-gray-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition cursor-pointer disabled:opacity-40 flex-shrink-0"
+                          className="p-0.5 rounded text-gray-300 hover:text-red-500 transition cursor-pointer disabled:opacity-40 flex-shrink-0"
                           title="削除"
                         >
                           {deletingItemId === item.id

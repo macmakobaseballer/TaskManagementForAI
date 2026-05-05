@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBoards } from '../hooks/useBoards'
 import CreateBoardModal from './CreateBoardModal'
 import ConfirmDialog from './ConfirmDialog'
 import Spinner from './Spinner'
-import { deleteBoard } from '../api/boards'
+import { deleteBoard, updateBoard } from '../api/boards'
 
 const BG_COLORS = [
   'bg-blue-600', 'bg-yellow-600', 'bg-green-700',
@@ -15,8 +15,55 @@ export default function BoardList() {
   const { boards, loading, error, refetch } = useBoards()
   const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
+
+  // 三点メニュー
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // ボード削除
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingBoardId, setDeletingBoardId] = useState<string | null>(null)
+
+  // ボード名変更
+  const [renamingBoardId, setRenamingBoardId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [savingRename, setSavingRename] = useState(false)
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!openMenuId) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openMenuId])
+
+  useEffect(() => {
+    if (renamingBoardId) {
+      setTimeout(() => renameInputRef.current?.select(), 0)
+    }
+  }, [renamingBoardId])
+
+  const openRename = (boardId: string, currentTitle: string) => {
+    setOpenMenuId(null)
+    setRenamingBoardId(boardId)
+    setRenameValue(currentTitle)
+  }
+
+  const saveRename = async () => {
+    if (!renamingBoardId || !renameValue.trim() || savingRename) return
+    setSavingRename(true)
+    try {
+      await updateBoard(renamingBoardId, { title: renameValue.trim() })
+      setRenamingBoardId(null)
+      refetch()
+    } finally {
+      setSavingRename(false)
+    }
+  }
 
   const handleDeleteBoard = async () => {
     if (!confirmDeleteId) return
@@ -64,21 +111,60 @@ export default function BoardList() {
             key={board.id}
             className={`relative group w-48 h-24 rounded-md ${BG_COLORS[i % BG_COLORS.length]}`}
           >
+            {/* ボードカード本体（クリックで遷移） */}
             <button
               onClick={() => navigate(`/boards/${board.id}`)}
               className="w-full h-full text-white text-left p-3 font-bold text-sm hover:brightness-110 transition cursor-pointer rounded-md"
             >
-              {board.title}
+              {renamingBoardId === board.id ? (
+                <input
+                  ref={renameInputRef}
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onClick={e => e.stopPropagation()}
+                  onBlur={saveRename}
+                  onKeyDown={e => {
+                    e.stopPropagation()
+                    if (e.key === 'Enter') saveRename()
+                    if (e.key === 'Escape') setRenamingBoardId(null)
+                  }}
+                  className="w-full bg-white/20 text-white font-bold text-sm rounded px-1 focus:outline-none focus:ring-2 focus:ring-white/60"
+                  disabled={savingRename}
+                />
+              ) : (
+                board.title
+              )}
             </button>
-            <button
-              onClick={e => { e.stopPropagation(); setConfirmDeleteId(board.id) }}
-              className="absolute top-1.5 right-1.5 p-1 rounded text-white/60 hover:text-white hover:bg-black/20 opacity-0 group-hover:opacity-100 transition cursor-pointer"
-              title="ボードを削除"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </button>
+
+            {/* 三点リーダーボタン */}
+            <div className="absolute top-1.5 right-1.5" ref={openMenuId === board.id ? menuRef : undefined}>
+              <button
+                onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === board.id ? null : board.id) }}
+                className="p-1 rounded text-white/60 hover:text-white hover:bg-black/20 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                title="メニュー"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+                </svg>
+              </button>
+
+              {openMenuId === board.id && (
+                <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <button
+                    onClick={e => { e.stopPropagation(); openRename(board.id, board.title) }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  >
+                    名前を変更
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); setOpenMenuId(null); setConfirmDeleteId(board.id) }}
+                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                  >
+                    削除
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
