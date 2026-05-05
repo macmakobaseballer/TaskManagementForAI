@@ -8,14 +8,17 @@ export function useBoards() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(() => {
-    setLoading(true)
     fetchBoards()
-      .then(setBoards)
-      .catch(err => setError(err.message ?? 'ボードの取得に失敗しました'))
-      .finally(() => setLoading(false))
+      .then(data => { setBoards(data); setLoading(false) })
+      .catch(err => { setError(err.message ?? 'ボードの取得に失敗しました'); setLoading(false) })
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  return { boards, loading, error, refetch: fetchData }
+  const refetch = useCallback(() => {
+    setLoading(true)
+    fetchData()
+  }, [fetchData])
+
+  return { boards, loading, error, refetch }
 }
