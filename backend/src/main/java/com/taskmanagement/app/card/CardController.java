@@ -37,7 +37,7 @@ public class CardController {
     @PatchMapping("/{cardId}/position")
     public ResponseEntity<CardDetailResponse> updateCardPosition(
             @PathVariable UUID cardId,
-            @RequestBody CardPositionUpdateRequest request) {
+            @RequestBody @Valid CardPositionUpdateRequest request) {
         return ResponseEntity.ok(cardService.updateCardPosition(cardId, request));
     }
 

@@ -1,34 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createBoard } from '../api/boards'
 import Spinner from './Spinner'
 
 interface Props {
-  isOpen: boolean
   onClose: () => void
   onCreated: () => void
 }
 
-export default function CreateBoardModal({ isOpen, onClose, onCreated }: Props) {
+export default function CreateBoardModal({ onClose, onCreated }: Props) {
   const [title, setTitle] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (isOpen) {
-      setTitle('')
-      setError(null)
-      setTimeout(() => inputRef.current?.focus(), 50)
-    }
-  }, [isOpen])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    if (isOpen) document.addEventListener('keydown', handleKey)
+    document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
+  }, [onClose])
 
   const handleSubmit = async () => {
     if (!title.trim() || submitting) return
@@ -53,7 +41,7 @@ export default function CreateBoardModal({ isOpen, onClose, onCreated }: Props) 
       <div className="bg-white rounded-lg shadow-xl w-80 p-5">
         <h3 className="font-bold text-base mb-3">新しいボードを作成</h3>
         <input
-          ref={inputRef}
+          autoFocus
           type="text"
           value={title}
           onChange={e => setTitle(e.target.value)}

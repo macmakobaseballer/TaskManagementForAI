@@ -169,11 +169,12 @@ export default function BoardList() {
         ))}
       </div>
 
-      <CreateBoardModal
-        isOpen={showCreate}
-        onClose={() => setShowCreate(false)}
-        onCreated={refetch}
-      />
+      {showCreate && (
+        <CreateBoardModal
+          onClose={() => setShowCreate(false)}
+          onCreated={refetch}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={!!confirmDeleteId}
