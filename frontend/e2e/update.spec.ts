@@ -3,13 +3,37 @@
  *
  * 主な仕様:
  * - シードデータ（V2__seed_dev_data.sql）の「プロジェクト Alpha」ボードを利用。
- * - カード編集・チェックリストトグル・リストタイトル編集・ラベル編集を検証する。
+ * - カード編集・チェックリストトグル・リストタイトル編集・ラベルを検証する。
  *
  * 制限事項:
  * - バックエンドが http://localhost:8080 で応答し、Flyway 済み DB が必要。
- * - テストはデータを変更するため、冪等性を保つためにテスト末尾でデータを元に戻す。
+ * - テストはデータを変更するため、末尾で元に戻す。
  */
+import type { Page } from '@playwright/test'
 import { test, expect } from '@playwright/test'
+
+/**
+ * CardDetail の白ペイン本体（Tailwind で max-w-2xl）。
+ * `<label>` に htmlFor が無く getByLabel が使えないため、題名入力 placeholder で識別する。
+ *
+ * @param {Page} page 対象ページ
+ * @returns {import('@playwright/test').Locator} カード詳細ペイン locator
+ */
+function card_detail_panel(page: Page) {
+  return page
+    .locator('div.max-w-2xl')
+    .filter({ has: page.locator('input[placeholder="タイトルを入力"]') })
+    .first()
+}
+
+/**
+ * ラベル管理モーダル（ボードヘッダーから開く）のルートコンテナを返す。
+ * @param {Page} page 対象ページ
+ * @returns {import('@playwright/test').Locator} ラベル管理モーダル locator
+ */
+function label_manage_modal(page: Page) {
+  return page.locator('div.fixed.z-60').filter({ has: page.getByRole('heading', { name: 'ラベル管理' }) })
+}
 
 test.describe('更新処理', () => {
   test.beforeEach(async ({ page }) => {
@@ -19,138 +43,147 @@ test.describe('更新処理', () => {
     await expect(page.getByRole('button', { name: '← 一覧へ' })).toBeVisible()
   })
 
-  test('カードタイトルをクリックして編集できる', async ({ page }) => {
-    // カード詳細モーダルを開く
-    await page.getByRole('button', { name: /APIエラーハンドリング追加/ }).click()
-    await expect(page.getByText('APIエラーハンドリング追加').first()).toBeVisible({ timeout: 15_000 })
+  test('カードタイトルを編集して一括保存できる', async ({ page }) => {
+    await page.getByText('APIエラーハンドリング追加', { exact: true }).first().click()
 
-    // タイトルをクリックして編集
-    await page.getByRole('heading', { name: 'APIエラーハンドリング追加' }).click()
-    const titleInput = page.locator('input[value="APIエラーハンドリング追加"]')
-    await expect(titleInput).toBeVisible()
+    const overlay = card_detail_panel(page)
+    const titleInput = overlay.locator('input[placeholder="タイトルを入力"]')
+    await expect(titleInput).toBeVisible({ timeout: 15_000 })
+    await expect(titleInput).toHaveValue('APIエラーハンドリング追加')
 
-    // タイトルを変更して Enter で保存
     await titleInput.fill('APIエラーハンドリング追加 (edited)')
-    await titleInput.press('Enter')
+    await overlay.getByRole('button', { name: '保存' }).click()
 
-    // 保存後、更新されたタイトルが表示されること
-    await expect(page.getByRole('heading', { name: 'APIエラーハンドリング追加 (edited)' })).toBeVisible({ timeout: 10_000 })
+    await expect(overlay.locator('input[placeholder="タイトルを入力"]')).not.toBeVisible({
+      timeout: 10_000,
+    })
+    await expect(
+      page.getByText('APIエラーハンドリング追加 (edited)', { exact: true }).first(),
+    ).toBeVisible({ timeout: 10_000 })
 
-    // 元のタイトルに戻す
-    await page.getByRole('heading', { name: 'APIエラーハンドリング追加 (edited)' }).click()
-    const inputBack = page.locator('input[value="APIエラーハンドリング追加 (edited)"]')
-    await inputBack.fill('APIエラーハンドリング追加')
-    await inputBack.press('Enter')
-    await expect(page.getByRole('heading', { name: 'APIエラーハンドリング追加' })).toBeVisible({ timeout: 10_000 })
+    await page.getByText('APIエラーハンドリング追加 (edited)', { exact: true }).first().click()
+    const reopen = card_detail_panel(page)
+    await reopen.locator('input[placeholder="タイトルを入力"]').fill('APIエラーハンドリング追加')
+    await reopen.getByRole('button', { name: '保存' }).click()
 
-    await page.getByRole('button', { name: '×' }).click()
+    await expect(page.getByText('APIエラーハンドリング追加', { exact: true }).first()).toBeVisible({
+      timeout: 10_000,
+    })
   })
 
   test('チェックリストアイテムをトグルできる', async ({ page }) => {
-    await page.getByRole('button', { name: /ログイン画面のデザイン修正/ }).click()
-    await expect(page.getByText('チェックリスト')).toBeVisible({ timeout: 15_000 })
+    await page.getByText('ログイン画面のデザイン修正', { exact: true }).first().click()
 
-    // コードレビュー（未完了）をトグルして完了にする
-    const codeReviewItem = page.locator('label, div').filter({ hasText: 'コードレビュー' }).first()
-    const checkbox = page.locator('input[type="checkbox"]').filter({ has: page.locator(':scope + span', { hasText: 'コードレビュー' }) }).first()
+    const overlay = card_detail_panel(page)
+    await expect(overlay.getByText('チェックリスト', { exact: true }).first()).toBeVisible({
+      timeout: 15_000,
+    })
 
-    // チェックボックスが存在することを確認
-    const checkboxes = page.locator('input[type="checkbox"]')
-    await expect(checkboxes.first()).toBeVisible()
+    await expect(overlay.getByText('1/3').first()).toBeVisible()
 
-    // 進捗カウントが変わることを確認（1/3 → 2/3）
-    await expect(page.getByText('1/3')).toBeVisible()
-
-    // チェックボックスをクリック（コードレビューは2番目のチェックボックス）
+    const checkboxes = overlay.locator('input[type="checkbox"]')
+    await expect(checkboxes.nth(1)).toBeVisible()
     await checkboxes.nth(1).click()
-    await expect(page.getByText('2/3')).toBeVisible({ timeout: 10_000 })
+    await expect(overlay.getByText('2/3').first()).toBeVisible({ timeout: 10_000 })
 
-    // 元に戻す
     await checkboxes.nth(1).click()
-    await expect(page.getByText('1/3')).toBeVisible({ timeout: 10_000 })
+    await expect(overlay.getByText('1/3').first()).toBeVisible({ timeout: 10_000 })
 
-    await page.getByRole('button', { name: '×' }).click()
+    await overlay.getByRole('button', { name: '×' }).click()
   })
 
   test('リストタイトルをダブルクリックして編集できる', async ({ page }) => {
-    // Backlog リストタイトルをダブルクリック
-    const backlogTitle = page.getByText('Backlog').first()
-    await backlogTitle.dblclick()
+    const firstListTitle = page
+      .locator('.w-72.flex-shrink-0')
+      .first()
+      .locator('span.flex-1.cursor-pointer')
+      .filter({ hasText: /^Backlog$/ })
+    await firstListTitle.click({ clickCount: 2, delay: 40 })
 
-    // 編集フィールドが表示される
-    const listInput = page.locator('input[value="Backlog"]')
-    await expect(listInput).toBeVisible()
+    const firstListColumn = page.locator('.w-72.flex-shrink-0').first()
+    const listInput = firstListColumn.locator('input[class*="flex-1"][class*="font-bold"]')
+    await expect(listInput).toBeVisible({ timeout: 10_000 })
+    await expect(listInput).toHaveValue('Backlog')
 
     await listInput.fill('Backlog (edited)')
     await listInput.press('Enter')
 
-    // 更新されたタイトルが表示される
-    await expect(page.getByText('Backlog (edited)').first()).toBeVisible({ timeout: 10_000 })
+    await expect(
+      firstListColumn.locator('span.flex-1.cursor-pointer').filter({ hasText: /^Backlog \(edited\)$/ }),
+    ).toBeVisible({ timeout: 10_000 })
 
-    // 元のタイトルに戻す
-    await page.getByText('Backlog (edited)').first().dblclick()
-    const inputBack = page.locator('input[value="Backlog (edited)"]')
-    await inputBack.fill('Backlog')
-    await inputBack.press('Enter')
-    await expect(page.getByText('Backlog').first()).toBeVisible({ timeout: 10_000 })
+    await firstListColumn.locator('span.flex-1.cursor-pointer').filter({ hasText: /^Backlog \(edited\)$/ }).click({
+      clickCount: 2,
+      delay: 40,
+    })
+
+    const restoreInput = firstListColumn.locator('input[class*="flex-1"][class*="font-bold"]')
+    await expect(restoreInput).toBeVisible({ timeout: 10_000 })
+    await restoreInput.fill('Backlog')
+    await restoreInput.press('Enter')
+
+    await expect(
+      firstListColumn.locator('span.flex-1.cursor-pointer').filter({ hasText: /^Backlog$/ }).first(),
+    ).toBeVisible({ timeout: 10_000 })
   })
 
-  test('ラベルモーダルで既存ラベルを編集できる', async ({ page }) => {
-    // カード詳細を開く
-    await page.getByRole('button', { name: /ログイン画面のデザイン修正/ }).click()
-    await expect(page.getByText('ラベル').first()).toBeVisible({ timeout: 15_000 })
+  test('ヘッダーからラベル管理で既存ラベルを編集できる', async ({ page }) => {
+    await page.locator('button[title="設定"]').click()
+    await page.getByRole('button', { name: 'ラベル管理' }).click()
 
-    // ラベル管理モーダルを開く
-    await page.getByRole('button', { name: '+ ラベル管理' }).click()
-    await expect(page.getByRole('heading', { name: 'ラベル管理' })).toBeVisible()
+    const modal = label_manage_modal(page)
+    await expect(modal.getByRole('heading', { name: 'ラベル管理' })).toBeVisible()
 
-    // 既存ラベル「バグ」の編集ボタンをクリック
-    // ラベルリストの最初の編集ボタン（✏️）を探す
-    const editButtons = page.locator('button[title="編集"]')
-    await expect(editButtons.first()).toBeVisible()
-    await editButtons.first().click()
+    await modal.locator('button[title="編集"]').first().click()
 
-    // 編集フォームが表示される
-    const editInput = page.locator('input').filter({ hasText: '' }).first()
-    await expect(editInput).toBeVisible()
+    const nameInput = modal.locator('input[placeholder="ラベル名"]').first()
+    await expect(nameInput).toBeVisible()
 
-    // 保存ボタンをクリック
-    await page.getByRole('button', { name: '保存' }).click()
+    await nameInput.fill('バグ (edited)')
+    await modal.getByRole('button', { name: '保存' }).first().click()
 
-    // ラベルモーダルを閉じる
-    await page.getByRole('button', { name: '×' }).last().click()
-    await page.getByRole('button', { name: '×' }).last().click()
+    await expect(modal.locator('span.rounded-full').filter({ hasText: 'バグ (edited)' }).first()).toBeVisible({
+      timeout: 10_000,
+    })
+
+    await modal.locator('button[title="編集"]').first().click()
+    await modal.locator('input[placeholder="ラベル名"]').first().fill('バグ')
+    await modal.getByRole('button', { name: '保存' }).first().click()
+
+    await expect(modal.locator('span.rounded-full').filter({ hasText: 'バグ' }).first()).toBeVisible({
+      timeout: 10_000,
+    })
+    await modal.getByRole('button', { name: '×' }).click()
   })
 
-  test('カードにラベルを付与・除去できる', async ({ page }) => {
-    // DB接続設定の最適化（ラベルなし）のカードを開く
-    await page.getByRole('button', { name: /DB接続設定の最適化/ }).click()
-    await expect(page.getByText('ラベル').first()).toBeVisible({ timeout: 15_000 })
+  test('カード詳細のドロップダウンでラベルを付与・除去できる', async ({ page }) => {
+    await page.getByText('DB接続設定の最適化', { exact: true }).first().click()
 
-    // ラベル管理モーダルを開く
-    await page.getByRole('button', { name: '+ ラベル管理' }).click()
-    await expect(page.getByRole('heading', { name: 'ラベル管理' })).toBeVisible()
+    const overlay = card_detail_panel(page)
+    await expect(overlay.locator('label').filter({ hasText: /^ラベル$/ })).toBeVisible({
+      timeout: 15_000,
+    })
 
-    // ラベルのチェックボックスが表示される（cardId を渡しているため）
-    const labelCheckboxes = page.locator('input[type="checkbox"]')
-    await expect(labelCheckboxes.first()).toBeVisible({ timeout: 5_000 })
+    // ラベル行は form 関連付けより DOM 親子でトリガーを押す（表示文言は環境により accessible name とずれることがある）
+    await overlay.locator('div.mb-4.relative').locator('button[type="button"]').first().click()
 
-    // 最初のラベルを付与
-    await labelCheckboxes.first().check()
+    // アクセシブル名はラベルのピル文言（実名「バグ」）と完全一致。「バグ (edited)」と区別する。
+    const assign_box = overlay.getByRole('checkbox', { name: 'バグ', exact: true })
+    await expect(assign_box).toBeVisible({ timeout: 5_000 })
 
-    // モーダルを閉じてカードタイルを確認
-    await page.getByRole('button', { name: '×' }).last().click()
-    await page.getByRole('button', { name: '×' }).last().click()
+    await expect(assign_box).not.toBeChecked()
+    await assign_box.click()
+    await expect(assign_box).toBeChecked({ timeout: 15_000 })
 
-    // カード詳細を再度開き、ラベルが付与されていることを確認
-    await page.getByRole('button', { name: /DB接続設定の最適化/ }).click()
-    await expect(page.locator('.flex.flex-wrap.gap-1\\.5 span').first()).toBeVisible({ timeout: 10_000 })
+    const label_trigger = overlay.locator('div.mb-4.relative').locator('button[type="button"]').first()
+    await expect(label_trigger.locator('span.rounded-full').filter({ hasText: /^バグ$/ })).toBeVisible({
+      timeout: 10_000,
+    })
 
-    // クリーンアップ: ラベルを除去
-    await page.getByRole('button', { name: '+ ラベル管理' }).click()
-    const checkboxes2 = page.locator('input[type="checkbox"]')
-    await checkboxes2.first().uncheck()
-    await page.getByRole('button', { name: '×' }).last().click()
-    await page.getByRole('button', { name: '×' }).last().click()
+    await expect(assign_box).toBeEnabled({ timeout: 15_000 })
+    await assign_box.click()
+    await expect(assign_box).not.toBeChecked({ timeout: 15_000 })
+    await page.keyboard.press('Escape')
+    await overlay.getByRole('button', { name: '×' }).click()
   })
 })

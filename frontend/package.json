@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "env -u PLAYWRIGHT_BROWSERS_PATH playwright test"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

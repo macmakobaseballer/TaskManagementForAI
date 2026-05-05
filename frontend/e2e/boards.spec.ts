@@ -26,16 +26,14 @@ test.describe('API レビュー画面', () => {
     await expect(page.getByRole('button', { name: '← 一覧へ' })).toBeVisible()
     await expect(page.getByText('プロジェクト Alpha').first()).toBeVisible()
 
-    await page.getByRole('button', { name: /ログイン画面のデザイン修正/ }).click()
+    await page.getByText('ログイン画面のデザイン修正', { exact: true }).first().click()
 
-    await expect(
-      page.getByRole('heading', { name: 'ログイン画面のデザイン修正' }),
-    ).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText('チェックリスト')).toBeVisible()
+    const titleField = page.locator('input[placeholder="タイトルを入力"]')
+    await expect(titleField).toBeVisible({ timeout: 15_000 })
+    await expect(titleField).toHaveValue('ログイン画面のデザイン修正')
+    await expect(page.getByText('チェックリスト', { exact: true }).first()).toBeVisible()
 
     await page.getByRole('button', { name: '×' }).click()
-    await expect(
-      page.getByRole('heading', { name: 'ログイン画面のデザイン修正' }),
-    ).not.toBeVisible()
+    await expect(titleField).not.toBeVisible()
   })
 })

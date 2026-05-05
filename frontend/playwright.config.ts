@@ -15,7 +15,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // 同一シード DB を複数テストが更新するため、並列実行による競合を避ける
+  workers: 1,
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:5173',
