@@ -9,3 +9,6 @@ export const createLabel = (data: CreateLabelRequest): Promise<Label> =>
 
 export const updateLabel = (labelId: string, data: UpdateLabelRequest): Promise<Label> =>
   client.put<Label>(`/labels/${labelId}`, data).then(res => res.data)
+
+export const deleteLabel = (labelId: string): Promise<void> =>
+  client.delete(`/labels/${labelId}`).then(() => undefined)

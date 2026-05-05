@@ -12,3 +12,6 @@ export const createBoard = (data: CreateBoardRequest): Promise<BoardSummary> =>
 
 export const updateBoard = (boardId: string, data: UpdateBoardRequest): Promise<BoardSummary> =>
   client.put<BoardSummary>(`/boards/${boardId}`, data).then(res => res.data)
+
+export const deleteBoard = (boardId: string): Promise<void> =>
+  client.delete(`/boards/${boardId}`).then(() => undefined)

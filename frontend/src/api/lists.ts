@@ -9,3 +9,6 @@ export const updateList = (listId: string, data: UpdateListRequest): Promise<Tas
 
 export const updateListPosition = (listId: string, data: UpdateListPositionRequest): Promise<TaskList> =>
   client.patch<TaskList>(`/lists/${listId}/position`, data).then(res => res.data)
+
+export const deleteList = (listId: string): Promise<void> =>
+  client.delete(`/lists/${listId}`).then(() => undefined)

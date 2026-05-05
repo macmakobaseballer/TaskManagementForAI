@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useCardDetail } from '../hooks/useCardDetail'
-import { updateCard, addLabelToCard, removeLabelFromCard } from '../api/cards'
-import { toggleChecklistItem as apiToggle, updateChecklist, updateChecklistItem } from '../api/checklists'
+import { updateCard, addLabelToCard, removeLabelFromCard, deleteCard } from '../api/cards'
+import { toggleChecklistItem as apiToggle, updateChecklist, updateChecklistItem, deleteChecklist, deleteChecklistItem } from '../api/checklists'
 import { fetchLabelsByBoard } from '../api/labels'
 import CreateChecklistForm from './CreateChecklistForm'
 import CreateChecklistItemForm from './CreateChecklistItemForm'
@@ -25,6 +25,15 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
   const [editDueDate, setEditDueDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [initializedForId, setInitializedForId] = useState<string | null>(null)
+
+  // カード削除
+  const [deletingCard, setDeletingCard] = useState(false)
+
+  // チェックリスト削除
+  const [deletingChecklistId, setDeletingChecklistId] = useState<string | null>(null)
+
+  // アイテム削除
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null)
 
   useEffect(() => {
     if (card && card.id !== initializedForId) {
@@ -50,6 +59,40 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
       onClose()
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteCard = async () => {
+    if (!card || deletingCard) return
+    setDeletingCard(true)
+    try {
+      await deleteCard(card.id)
+      onSaved?.()
+      onClose()
+    } finally {
+      setDeletingCard(false)
+    }
+  }
+
+  const handleDeleteChecklist = async (checklistId: string) => {
+    if (deletingChecklistId) return
+    setDeletingChecklistId(checklistId)
+    try {
+      await deleteChecklist(checklistId)
+      await refetch()
+    } finally {
+      setDeletingChecklistId(null)
+    }
+  }
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (deletingItemId) return
+    setDeletingItemId(itemId)
+    try {
+      await deleteChecklistItem(itemId)
+      await refetch()
+    } finally {
+      setDeletingItemId(null)
     }
   }
 
@@ -137,12 +180,29 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl leading-none px-2 cursor-pointer"
-        >
-          ×
-        </button>
+        <div className="absolute top-3 right-3 flex items-center gap-1">
+          <button
+            onClick={handleDeleteCard}
+            disabled={deletingCard}
+            className="text-gray-400 hover:text-red-500 p-1 rounded cursor-pointer disabled:opacity-40"
+            title="カードを削除"
+          >
+            {deletingCard
+              ? <Spinner className="w-4 h-4" />
+              : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              )
+            }
+          </button>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-700 text-xl leading-none px-2 cursor-pointer"
+          >
+            ×
+          </button>
+        </div>
 
         {loading && !card && (
           <div className="flex items-center gap-2 text-gray-500 py-4">
@@ -249,7 +309,7 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
                 const pct = total ? Math.round((done / total) * 100) : 0
                 return (
                   <div key={cl.id} className="mb-4">
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex justify-between items-center mb-1 group">
                       {editingChecklistId === cl.id ? (
                         <input
                           autoFocus
@@ -271,7 +331,24 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
                           {cl.title}
                         </span>
                       )}
-                      <span className="text-gray-400 text-xs ml-2 flex-shrink-0">{done}/{total} ({pct}%)</span>
+                      <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+                        <span className="text-gray-400 text-xs">{done}/{total} ({pct}%)</span>
+                        <button
+                          onClick={() => handleDeleteChecklist(cl.id)}
+                          disabled={deletingChecklistId === cl.id}
+                          className="p-0.5 rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition cursor-pointer disabled:opacity-40"
+                          title="チェックリストを削除"
+                        >
+                          {deletingChecklistId === cl.id
+                            ? <Spinner className="w-3.5 h-3.5" />
+                            : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                            )
+                          }
+                        </button>
+                      </div>
                     </div>
                     <div className="h-1.5 bg-gray-200 rounded mb-2 overflow-hidden">
                       <div
@@ -308,6 +385,17 @@ export default function CardDetail({ cardId, boardId, onClose, onSaved }: Props)
                             {item.text}
                           </span>
                         )}
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          disabled={deletingItemId === item.id}
+                          className="p-0.5 rounded text-gray-300 hover:text-red-500 transition cursor-pointer disabled:opacity-40 flex-shrink-0"
+                          title="削除"
+                        >
+                          {deletingItemId === item.id
+                            ? <Spinner className="w-3 h-3" />
+                            : <span className="text-xs leading-none">✕</span>
+                          }
+                        </button>
                       </div>
                     ))}
                     <CreateChecklistItemForm checklistId={cl.id} onCreated={refetch} />

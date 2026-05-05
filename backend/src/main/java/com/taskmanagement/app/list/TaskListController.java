@@ -35,4 +35,10 @@ public class TaskListController {
             @RequestBody TaskListPositionUpdateRequest request) {
         return ResponseEntity.ok(taskListService.updateListPosition(listId, request));
     }
+
+    @DeleteMapping("/{listId}")
+    public ResponseEntity<Void> deleteList(@PathVariable UUID listId) {
+        taskListService.deleteList(listId);
+        return ResponseEntity.noContent().build();
+    }
 }

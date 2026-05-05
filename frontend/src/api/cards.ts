@@ -18,3 +18,6 @@ export const addLabelToCard = (cardId: string, labelId: string): Promise<CardDet
 
 export const removeLabelFromCard = (cardId: string, labelId: string): Promise<CardDetail> =>
   client.delete<CardDetail>(`/cards/${cardId}/labels/${labelId}`).then(res => res.data)
+
+export const deleteCard = (cardId: string): Promise<void> =>
+  client.delete(`/cards/${cardId}`).then(() => undefined)

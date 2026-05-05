@@ -1,6 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import BoardList from './components/BoardList'
 import BoardDetail from './components/BoardDetail'
+import NotFoundPage from './components/NotFoundPage'
 
 export default function App() {
   return (
@@ -11,7 +12,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<BoardList />} />
         <Route path="/boards/:boardId" element={<BoardDetail />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
   )

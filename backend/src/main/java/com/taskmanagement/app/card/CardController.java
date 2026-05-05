@@ -54,4 +54,10 @@ public class CardController {
             @PathVariable UUID labelId) {
         return ResponseEntity.ok(cardService.removeLabelFromCard(cardId, labelId));
     }
+
+    @DeleteMapping("/{cardId}")
+    public ResponseEntity<Void> deleteCard(@PathVariable UUID cardId) {
+        cardService.deleteCard(cardId);
+        return ResponseEntity.noContent().build();
+    }
 }
