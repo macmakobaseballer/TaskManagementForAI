@@ -60,6 +60,13 @@ public class TaskListService {
         return new TaskListResponse(saved.getId(), saved.getTitle(), saved.getPosition(), List.of());
     }
 
+    @Transactional
+    public void deleteList(UUID listId) {
+        if (!taskListRepository.existsById(listId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "List not found");
+        taskListRepository.deleteById(listId);
+    }
+
     private double calcPosition(Double prev, Double next) {
         if (prev == null && next == null) return 1024.0;
         if (prev == null) return next / 2.0;

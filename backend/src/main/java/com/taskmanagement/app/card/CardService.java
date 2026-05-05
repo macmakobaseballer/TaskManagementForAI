@@ -156,6 +156,13 @@ public class CardService {
         return toDetailResponse(card);
     }
 
+    @Transactional
+    public void deleteCard(UUID cardId) {
+        if (!cardRepository.existsById(cardId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Card not found");
+        cardRepository.deleteById(cardId);
+    }
+
     private CardDetailResponse toDetailResponse(Card card) {
         List<LabelResponse> labels = card.getLabels().stream()
             .map(LabelResponse::from)

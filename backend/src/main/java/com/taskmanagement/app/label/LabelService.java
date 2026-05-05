@@ -50,4 +50,11 @@ public class LabelService {
         label.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
         return LabelResponse.from(labelRepository.save(label));
     }
+
+    @Transactional
+    public void deleteLabel(UUID labelId) {
+        if (!labelRepository.existsById(labelId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Label not found");
+        labelRepository.deleteById(labelId);
+    }
 }

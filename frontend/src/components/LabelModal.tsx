@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchLabelsByBoard, createLabel, updateLabel } from '../api/labels'
+import { fetchLabelsByBoard, createLabel, updateLabel, deleteLabel } from '../api/labels'
 import { addLabelToCard, removeLabelFromCard } from '../api/cards'
 import type { Label } from '../types/api'
 import Spinner from './Spinner'
@@ -34,6 +34,21 @@ export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose
 
   // ラベル付与/除去
   const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  // ラベル削除
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleDeleteLabel = async (labelId: string) => {
+    if (deletingId) return
+    setDeletingId(labelId)
+    try {
+      await deleteLabel(labelId)
+      setLabels(prev => prev.filter(l => l.id !== labelId))
+      onLabelsChanged()
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     fetchLabelsByBoard(boardId).then(setLabels).catch(() => {})
@@ -204,13 +219,23 @@ export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose
                       >
                         {l.name}
                       </span>
-                      <button
-                        onClick={() => startEdit(l)}
-                        className="ml-auto text-xs text-gray-400 hover:text-blue-600 cursor-pointer px-1.5 py-0.5 rounded hover:bg-gray-100"
-                        title="編集"
-                      >
-                        編集
-                      </button>
+                      <div className="ml-auto flex items-center gap-1">
+                        <button
+                          onClick={() => startEdit(l)}
+                          className="text-xs text-gray-400 hover:text-blue-600 cursor-pointer px-1.5 py-0.5 rounded hover:bg-gray-100"
+                          title="編集"
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLabel(l.id)}
+                          disabled={!!deletingId}
+                          className="text-xs text-gray-400 hover:text-red-600 cursor-pointer px-1.5 py-0.5 rounded hover:bg-red-50 disabled:opacity-40"
+                          title="削除"
+                        >
+                          {deletingId === l.id ? <Spinner className="w-3 h-3" /> : '削除'}
+                        </button>
+                      </div>
                       {togglingId === l.id && <Spinner className="w-3 h-3" />}
                     </div>
                   )}

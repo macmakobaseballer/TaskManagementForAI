@@ -86,4 +86,18 @@ public class ChecklistService {
         item.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
         return ChecklistItemResponse.from(checklistItemRepository.save(item));
     }
+
+    @Transactional
+    public void deleteChecklist(UUID checklistId) {
+        if (!checklistRepository.existsById(checklistId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Checklist not found");
+        checklistRepository.deleteById(checklistId);
+    }
+
+    @Transactional
+    public void deleteChecklistItem(UUID itemId) {
+        if (!checklistItemRepository.existsById(itemId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ChecklistItem not found");
+        checklistItemRepository.deleteById(itemId);
+    }
 }

@@ -48,4 +48,16 @@ public class ChecklistController {
     public ResponseEntity<ChecklistItemResponse> toggleChecklistItem(@PathVariable UUID itemId) {
         return ResponseEntity.ok(checklistService.toggleChecklistItem(itemId));
     }
+
+    @DeleteMapping("/{checklistId}")
+    public ResponseEntity<Void> deleteChecklist(@PathVariable UUID checklistId) {
+        checklistService.deleteChecklist(checklistId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/items/{itemId}")
+    public ResponseEntity<Void> deleteChecklistItem(@PathVariable UUID itemId) {
+        checklistService.deleteChecklistItem(itemId);
+        return ResponseEntity.noContent().build();
+    }
 }

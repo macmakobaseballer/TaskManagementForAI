@@ -34,4 +34,10 @@ public class LabelController {
             @RequestBody @Valid LabelUpdateRequest request) {
         return ResponseEntity.ok(labelService.updateLabel(labelId, request));
     }
+
+    @DeleteMapping("/{labelId}")
+    public ResponseEntity<Void> deleteLabel(@PathVariable UUID labelId) {
+        labelService.deleteLabel(labelId);
+        return ResponseEntity.noContent().build();
+    }
 }

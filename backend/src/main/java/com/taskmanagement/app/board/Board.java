@@ -25,6 +25,9 @@ public class Board {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
     @OneToMany(mappedBy = "board", fetch = FetchType.LAZY)
     @OrderBy("position ASC")
     private List<TaskList> lists = new ArrayList<>();
@@ -46,4 +49,5 @@ public class Board {
 
     void setTitle(String title) { this.title = title; }
     void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
+    void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 }

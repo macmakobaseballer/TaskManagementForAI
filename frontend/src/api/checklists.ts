@@ -19,3 +19,9 @@ export const updateChecklistItem = (itemId: string, data: UpdateChecklistItemReq
 
 export const toggleChecklistItem = (itemId: string): Promise<ChecklistItem> =>
   client.patch<ChecklistItem>(`/checklists/items/${itemId}/toggle`).then(res => res.data)
+
+export const deleteChecklist = (checklistId: string): Promise<void> =>
+  client.delete(`/checklists/${checklistId}`).then(() => undefined)
+
+export const deleteChecklistItem = (itemId: string): Promise<void> =>
+  client.delete(`/checklists/items/${itemId}`).then(() => undefined)

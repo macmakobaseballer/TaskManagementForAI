@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import type { DropResult } from '@hello-pangea/dnd'
 import { useBoardDetail } from '../hooks/useBoardDetail'
-import { updateList, updateListPosition } from '../api/lists'
+import { updateList, updateListPosition, deleteList } from '../api/lists'
 import { updateCardPosition } from '../api/cards'
+import { deleteBoard } from '../api/boards'
 import CardDetail from './CardDetail'
 import CreateListForm from './CreateListForm'
 import CreateCardForm from './CreateCardForm'
 import LabelModal from './LabelModal'
+import ConfirmDialog from './ConfirmDialog'
 import Spinner from './Spinner'
 import type { TaskList, CardSummary } from '../types/api'
 
@@ -32,6 +34,11 @@ export default function BoardDetail() {
   const [editingListId, setEditingListId] = useState<string | null>(null)
   const [editingListTitle, setEditingListTitle] = useState('')
   const listTitleInputRef = useRef<HTMLInputElement>(null)
+
+  const [confirmDeleteListId, setConfirmDeleteListId] = useState<string | null>(null)
+  const [deletingListId, setDeletingListId] = useState<string | null>(null)
+  const [confirmDeleteBoard, setConfirmDeleteBoard] = useState(false)
+  const [deletingBoard, setDeletingBoard] = useState(false)
 
   useEffect(() => {
     if (!showSettingsMenu) return
@@ -70,6 +77,29 @@ export default function BoardDetail() {
       await refetch()
     } finally {
       setEditingListId(null)
+    }
+  }
+
+  const handleDeleteList = async () => {
+    if (!confirmDeleteListId) return
+    setDeletingListId(confirmDeleteListId)
+    try {
+      await deleteList(confirmDeleteListId)
+      setConfirmDeleteListId(null)
+      await refetch()
+    } finally {
+      setDeletingListId(null)
+    }
+  }
+
+  const handleDeleteBoard = async () => {
+    if (!boardId) return
+    setDeletingBoard(true)
+    try {
+      await deleteBoard(boardId)
+      navigate('/')
+    } finally {
+      setDeletingBoard(false)
     }
   }
 
@@ -172,6 +202,12 @@ export default function BoardDetail() {
               >
                 ラベル管理
               </button>
+              <button
+                onClick={() => { setShowSettingsMenu(false); setConfirmDeleteBoard(true) }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+              >
+                ボードを削除
+              </button>
             </div>
           )}
         </div>
@@ -197,7 +233,7 @@ export default function BoardDetail() {
                       {/* リストヘッダー（全体がドラッグハンドル） */}
                       <div
                         {...listProvided.dragHandleProps}
-                        className="px-3 py-2 font-bold text-sm text-gray-700 flex items-center gap-1 cursor-grab active:cursor-grabbing"
+                        className="px-3 py-2 font-bold text-sm text-gray-700 flex items-center gap-1 cursor-grab active:cursor-grabbing group"
                       >
                         {editingListId === list.id ? (
                           <input
@@ -220,6 +256,16 @@ export default function BoardDetail() {
                             {list.title}
                           </span>
                         )}
+                        <button
+                          onClick={e => { e.stopPropagation(); setConfirmDeleteListId(list.id) }}
+                          onMouseDown={e => e.stopPropagation()}
+                          className="p-0.5 rounded text-gray-400 hover:text-red-500 hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition cursor-pointer flex-shrink-0"
+                          title="リストを削除"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
                       </div>
 
                       {/* カード一覧 */}
@@ -287,6 +333,24 @@ export default function BoardDetail() {
           onLabelsChanged={refetch}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!confirmDeleteListId}
+        title="リストを削除"
+        message={`「${localLists.find(l => l.id === confirmDeleteListId)?.title}」を削除しますか？リスト内のカードもすべて削除されます。`}
+        confirming={!!deletingListId}
+        onConfirm={handleDeleteList}
+        onClose={() => setConfirmDeleteListId(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDeleteBoard}
+        title="ボードを削除"
+        message={`「${board.title}」を削除しますか？ボード内のすべてのリストとカードが削除されます。`}
+        confirming={deletingBoard}
+        onConfirm={handleDeleteBoard}
+        onClose={() => setConfirmDeleteBoard(false)}
+      />
     </div>
   )
 }
