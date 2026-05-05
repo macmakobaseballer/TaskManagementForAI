@@ -7,11 +7,11 @@ export function useCardDetail(cardId: string | null) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = useCallback(() => {
-    if (!cardId) { setCard(null); return }
+  const fetchData = useCallback((): Promise<void> => {
+    if (!cardId) { setCard(null); return Promise.resolve() }
     setLoading(true)
-    fetchCardDetail(cardId)
-      .then(setCard)
+    return fetchCardDetail(cardId)
+      .then(data => { setCard(data); setError(null) })
       .catch(err => setError(err.message ?? 'カードの取得に失敗しました'))
       .finally(() => setLoading(false))
   }, [cardId])

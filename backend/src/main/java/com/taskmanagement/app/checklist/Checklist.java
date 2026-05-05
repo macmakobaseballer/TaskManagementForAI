@@ -54,4 +54,7 @@ public class Checklist {
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public List<ChecklistItem> getItems() { return items; }
+
+    void setTitle(String title) { this.title = title; }
+    void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

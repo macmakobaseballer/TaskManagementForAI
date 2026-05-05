@@ -55,4 +55,8 @@ public class TaskList {
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public List<Card> getCards() { return cards; }
+
+    void setTitle(String title) { this.title = title; }
+    void setPosition(Double position) { this.position = position; }
+    void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -39,4 +39,31 @@ public class TaskListService {
 
         return new TaskListResponse(saved.getId(), saved.getTitle(), saved.getPosition(), List.of());
     }
+
+    @Transactional
+    public TaskListResponse updateList(UUID listId, TaskListUpdateRequest request) {
+        TaskList list = taskListRepository.findById(listId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "List not found"));
+        list.setTitle(request.title().strip());
+        list.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        TaskList saved = taskListRepository.save(list);
+        return new TaskListResponse(saved.getId(), saved.getTitle(), saved.getPosition(), List.of());
+    }
+
+    @Transactional
+    public TaskListResponse updateListPosition(UUID listId, TaskListPositionUpdateRequest request) {
+        TaskList list = taskListRepository.findById(listId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "List not found"));
+        list.setPosition(calcPosition(request.prevPosition(), request.nextPosition()));
+        list.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        TaskList saved = taskListRepository.save(list);
+        return new TaskListResponse(saved.getId(), saved.getTitle(), saved.getPosition(), List.of());
+    }
+
+    private double calcPosition(Double prev, Double next) {
+        if (prev == null && next == null) return 1024.0;
+        if (prev == null) return next / 2.0;
+        if (next == null) return prev + 1024;
+        return (prev + next) / 2.0;
+    }
 }

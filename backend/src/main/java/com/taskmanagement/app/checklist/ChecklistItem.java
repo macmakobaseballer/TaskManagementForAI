@@ -52,4 +52,8 @@ public class ChecklistItem {
     public Double getPosition() { return position; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
+
+    void setText(String text) { this.text = text; }
+    void setIsCompleted(Boolean isCompleted) { this.isCompleted = isCompleted; }
+    void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
