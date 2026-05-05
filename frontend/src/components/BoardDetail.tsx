@@ -11,6 +11,7 @@ import CreateListForm from './CreateListForm'
 import CreateCardForm from './CreateCardForm'
 import LabelModal from './LabelModal'
 import ConfirmDialog from './ConfirmDialog'
+import NotFoundPage from './NotFoundPage'
 import Spinner from './Spinner'
 import type { TaskList, CardSummary } from '../types/api'
 
@@ -26,7 +27,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 export default function BoardDetail() {
   const { boardId } = useParams<{ boardId: string }>()
   const navigate = useNavigate()
-  const { board, loading, error, refetch } = useBoardDetail(boardId ?? '')
+  const { board, loading, error, isNotFound, refetch } = useBoardDetail(boardId ?? '')
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [showLabelManager, setShowLabelManager] = useState(false)
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
@@ -158,6 +159,16 @@ export default function BoardDetail() {
         await refetch()
       }
     }
+  }
+
+  if (isNotFound) {
+    return (
+      <NotFoundPage
+        title="ボードが見つかりません"
+        message="このボードは削除されたか、URLが正しくない可能性があります。"
+        backLabel="ボード一覧へ戻る"
+      />
+    )
   }
 
   if (error) return <div className="p-8 text-red-600">エラー: {error}</div>
