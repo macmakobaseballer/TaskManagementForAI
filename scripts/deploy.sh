@@ -6,7 +6,7 @@
 set -e
 
 EC2_IP="${1:?使い方: $0 <EC2_PUBLIC_IP>}"
-KEY_PATH="${KEY_PATH:-~/.ssh/taskmanagement-key.pem}"
+KEY_PATH="${KEY_PATH:-$HOME/.ssh/taskmanagement-key.pem}"
 SSH_USER="ec2-user"
 APP_DIR="/opt/taskmanagement"
 JAR_NAME="task-management-0.0.1-SNAPSHOT.jar"

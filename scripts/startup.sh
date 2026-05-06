@@ -12,25 +12,28 @@ REGION="ap-northeast-1"
 mkdir -p /var/log/taskmanagement
 
 echo "[startup] SSM から接続情報を取得中..."
-export DB_URL=$(aws ssm get-parameter \
+DB_URL=$(aws ssm get-parameter \
   --name "/taskmanagement/db-url" \
   --region "$REGION" \
   --query Parameter.Value \
   --output text)
 
-export DB_USERNAME=$(aws ssm get-parameter \
+DB_USERNAME=$(aws ssm get-parameter \
   --name "/taskmanagement/db-username" \
   --region "$REGION" \
   --query Parameter.Value \
   --output text)
 
-export DB_PASSWORD=$(aws ssm get-parameter \
+DB_PASSWORD=$(aws ssm get-parameter \
   --name "/taskmanagement/db-password" \
   --region "$REGION" \
   --with-decryption \
   --query Parameter.Value \
   --output text)
 
+export DB_URL
+export DB_USERNAME
+export DB_PASSWORD
 export SPRING_PROFILES_ACTIVE=prod
 
 echo "[startup] Spring Boot 起動中..."
