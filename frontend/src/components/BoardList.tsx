@@ -142,7 +142,7 @@ export default function BoardList() {
                 )}
               </div>
               {/* 下部: メタ情報エリア */}
-              <div className="bg-white/50 backdrop-blur-md px-3 py-2.5 flex flex-col gap-1 text-xs text-gray-500 border-t border-white/40">
+              <div className="bg-white/50 backdrop-blur-md px-3 py-2.5 flex flex-col gap-1 text-xs text-gray-700 border-t border-white/40">
                 <span>作成: {new Date(board.createdAt).toLocaleDateString('ja-JP')}</span>
                 <span>更新: {formatRelative(board.updatedAt)}</span>
               </div>
