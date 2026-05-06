@@ -76,7 +76,7 @@ data "aws_ami" "amazon_linux_2023" {
 # EC2 インスタンス（t2.micro = 無料枠）
 resource "aws_instance" "app" {
   ami                    = data.aws_ami.amazon_linux_2023.id
-  instance_type          = "t2.micro"
+  instance_type          = "t3.micro"
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [aws_security_group.ec2.id]
   key_name               = var.key_name
