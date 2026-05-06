@@ -113,7 +113,7 @@ export default function BoardList() {
         {boards.map((board) => (
           <div
             key={board.id}
-            className="relative group w-64 h-36 rounded-xl overflow-hidden shadow-md ring-1 ring-white/40 hover:shadow-lg transition-shadow"
+            className="relative group w-72 h-40 rounded-xl overflow-hidden shadow-md ring-1 ring-white/40 hover:shadow-lg transition-shadow"
           >
             {/* カード本体（クリックで遷移） */}
             <button
@@ -138,11 +138,11 @@ export default function BoardList() {
                     disabled={savingRename}
                   />
                 ) : (
-                  <span className="font-bold text-gray-800 text-sm leading-snug text-left">{board.title}</span>
+                  <span className="font-bold text-gray-800 text-base leading-snug text-left">{board.title}</span>
                 )}
               </div>
               {/* 下部: メタ情報エリア */}
-              <div className="bg-white/50 backdrop-blur-md px-3 py-2 flex flex-col gap-0.5 text-xs text-gray-500 border-t border-white/40">
+              <div className="bg-white/50 backdrop-blur-md px-3 py-2.5 flex flex-col gap-1 text-xs text-gray-500 border-t border-white/40">
                 <span>作成: {new Date(board.createdAt).toLocaleDateString('ja-JP')}</span>
                 <span>更新: {formatRelative(board.updatedAt)}</span>
               </div>
