@@ -1,13 +1,10 @@
-import { useState, useEffect } from 'react'
-import { fetchLabelsByBoard, createLabel, updateLabel, deleteLabel } from '../api/labels'
+import { useState, useEffect, useRef } from 'react'
+import { fetchLabelsByBoard, deleteLabel } from '../api/labels'
 import { addLabelToCard, removeLabelFromCard } from '../api/cards'
 import type { Label } from '../types/api'
 import Spinner from './Spinner'
-
-const PRESET_COLORS = [
-  '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
-  '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
-]
+import LabelCreateForm from './LabelCreateForm'
+import LabelEditForm from './LabelEditForm'
 
 interface Props {
   boardId: string
@@ -19,24 +16,32 @@ interface Props {
 
 export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose, onLabelsChanged }: Props) {
   const [labels, setLabels] = useState<Label[]>([])
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newColor, setNewColor] = useState(PRESET_COLORS[0])
-  const [creating, setCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // ラベル編集ステート
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editColor, setEditColor] = useState(PRESET_COLORS[0])
-  const [savingEdit, setSavingEdit] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
-
-  // ラベル付与/除去
   const [togglingId, setTogglingId] = useState<string | null>(null)
-
-  // ラベル削除
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // onClose を ref で保持し、useEffect の依存配列から除外する
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  useEffect(() => {
+    fetchLabelsByBoard(boardId)
+      .then(setLabels)
+      .catch(() => setFetchError('ラベルの読み込みに失敗しました'))
+  }, [boardId])
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (editingId) { setEditingId(null); return }
+      if (showAddForm) { setShowAddForm(false); return }
+      onCloseRef.current()
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [editingId, showAddForm])
 
   const handleDeleteLabel = async (labelId: string) => {
     if (deletingId) return
@@ -50,72 +55,6 @@ export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose
     }
   }
 
-  useEffect(() => {
-    fetchLabelsByBoard(boardId).then(setLabels).catch(() => {})
-  }, [boardId])
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (editingId) { setEditingId(null); return }
-        if (showAddForm) { setShowAddForm(false); return }
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [onClose, editingId, showAddForm])
-
-  const openAddForm = () => {
-    setNewName('')
-    setNewColor(PRESET_COLORS[0])
-    setError(null)
-    setShowAddForm(true)
-  }
-
-  // 新規ラベル作成
-  const handleCreate = async () => {
-    if (!newName.trim() || creating) return
-    setCreating(true)
-    setError(null)
-    try {
-      const created = await createLabel({ name: newName.trim(), color: newColor, boardId })
-      setLabels(prev => [...prev, created])
-      setShowAddForm(false)
-      onLabelsChanged()
-    } catch {
-      setError('ラベルの作成に失敗しました')
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  // ラベル編集開始
-  const startEdit = (label: Label) => {
-    setEditingId(label.id)
-    setEditName(label.name)
-    setEditColor(label.color)
-    setEditError(null)
-  }
-
-  // ラベル編集保存（PUT /api/labels/{id} → 1トランザクション）
-  const saveEdit = async () => {
-    if (!editingId || !editName.trim() || savingEdit) return
-    setSavingEdit(true)
-    setEditError(null)
-    try {
-      const updated = await updateLabel(editingId, { name: editName.trim(), color: editColor })
-      setLabels(prev => prev.map(l => l.id === editingId ? updated : l))
-      onLabelsChanged()
-      setEditingId(null)
-    } catch {
-      setEditError('ラベルの更新に失敗しました')
-    } finally {
-      setSavingEdit(false)
-    }
-  }
-
-  // カードへのラベル付与/除去
   const handleToggleCard = async (label: Label) => {
     if (!cardId || togglingId) return
     setTogglingId(label.id)
@@ -142,7 +81,8 @@ export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none cursor-pointer">×</button>
         </div>
 
-        {/* 既存ラベル一覧 */}
+        {fetchError && <p className="text-red-600 text-sm mb-3">{fetchError}</p>}
+
         {labels.length > 0 && (
           <div className="mb-4">
             <div className="text-xs font-semibold text-gray-400 uppercase mb-2">既存ラベル</div>
@@ -150,58 +90,16 @@ export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose
               {labels.map(l => (
                 <div key={l.id}>
                   {editingId === l.id ? (
-                    /* ── 編集フォーム ── */
-                    <div className="border-2 border-blue-400 rounded-lg p-3 space-y-2 bg-blue-50">
-                      <div className="text-xs font-semibold text-blue-600 mb-1">ラベルを編集</div>
-                      <input
-                        autoFocus
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null) }}
-                        className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        placeholder="ラベル名"
-                      />
-                      <div className="flex justify-between mt-1">
-                        {PRESET_COLORS.map(c => (
-                          <button
-                            key={c}
-                            onClick={() => setEditColor(c)}
-                            className={`w-7 h-7 rounded-full cursor-pointer transition ${editColor === c ? 'ring-2 ring-offset-2 ring-gray-700 scale-110' : 'hover:scale-110'}`}
-                            style={{ backgroundColor: c }}
-                            title={c}
-                          />
-                        ))}
-                      </div>
-                      {/* プレビュー */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400">プレビュー:</span>
-                        <span
-                          className="text-white text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: editColor }}
-                        >
-                          {editName || '…'}
-                        </span>
-                      </div>
-                      {editError && <p className="text-red-600 text-xs">{editError}</p>}
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          onClick={saveEdit}
-                          disabled={!editName.trim() || savingEdit}
-                          className="flex-1 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          {savingEdit && <Spinner className="w-3.5 h-3.5 text-white" />}
-                          保存
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="flex-1 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 cursor-pointer"
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                    </div>
+                    <LabelEditForm
+                      label={l}
+                      onSaved={updated => {
+                        setLabels(prev => prev.map(x => x.id === updated.id ? updated : x))
+                        onLabelsChanged()
+                        setEditingId(null)
+                      }}
+                      onCancel={() => setEditingId(null)}
+                    />
                   ) : (
-                    /* ── 通常表示行 ── */
                     <div className="flex items-center gap-2 py-0.5">
                       {cardId && (
                         <input
@@ -221,7 +119,7 @@ export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose
                       </span>
                       <div className="ml-auto flex items-center gap-1">
                         <button
-                          onClick={() => startEdit(l)}
+                          onClick={() => setEditingId(l.id)}
                           className="text-xs text-gray-400 hover:text-blue-600 cursor-pointer px-1.5 py-0.5 rounded hover:bg-gray-100"
                           title="編集"
                         >
@@ -245,65 +143,24 @@ export default function LabelModal({ boardId, cardId, cardLabelIds = [], onClose
           </div>
         )}
 
-        {/* 新規ラベル作成 */}
         <div className="border-t pt-4">
           {!showAddForm ? (
             <button
-              onClick={openAddForm}
+              onClick={() => setShowAddForm(true)}
               className="w-full py-2 text-sm text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 cursor-pointer"
             >
               + ラベルの追加
             </button>
           ) : (
-            <div className="border-2 border-blue-400 rounded-lg p-3 space-y-2 bg-blue-50">
-              <div className="text-xs font-semibold text-blue-600 mb-1">新しいラベル</div>
-              <input
-                autoFocus
-                type="text"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
-                placeholder="ラベル名"
-                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-              <div className="flex justify-between mt-1">
-                {PRESET_COLORS.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setNewColor(c)}
-                    className={`w-7 h-7 rounded-full cursor-pointer transition ${newColor === c ? 'ring-2 ring-offset-2 ring-gray-600 scale-110' : 'hover:scale-110'}`}
-                    style={{ backgroundColor: c }}
-                    title={c}
-                  />
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">プレビュー:</span>
-                <span
-                  className="text-white text-xs font-bold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: newColor }}
-                >
-                  {newName || '…'}
-                </span>
-              </div>
-              {error && <p className="text-red-600 text-xs">{error}</p>}
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={handleCreate}
-                  disabled={!newName.trim() || creating}
-                  className="flex-1 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {creating && <Spinner className="w-3.5 h-3.5 text-white" />}
-                  保存
-                </button>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 cursor-pointer"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
+            <LabelCreateForm
+              boardId={boardId}
+              onCreated={created => {
+                setLabels(prev => [...prev, created])
+                setShowAddForm(false)
+                onLabelsChanged()
+              }}
+              onCancel={() => setShowAddForm(false)}
+            />
           )}
         </div>
       </div>

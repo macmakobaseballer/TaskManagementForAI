@@ -13,12 +13,15 @@ interface Props {
 
 export default function CardLabelSection({ cardId, boardId, selectedLabels, onChanged }: Props) {
   const [boardLabels, setBoardLabels] = useState<Label[]>([])
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
   const [togglingLabelId, setTogglingLabelId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetchLabelsByBoard(boardId).then(setBoardLabels).catch(() => {})
+    fetchLabelsByBoard(boardId)
+      .then(setBoardLabels)
+      .catch(() => setFetchError('ラベルの読み込みに失敗しました'))
   }, [boardId])
 
   useEffect(() => {
@@ -71,7 +74,9 @@ export default function CardLabelSection({ cardId, boardId, selectedLabels, onCh
 
       {showDropdown && (
         <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-          {boardLabels.length === 0 ? (
+          {fetchError ? (
+            <p className="px-3 py-2 text-sm text-red-500">{fetchError}</p>
+          ) : boardLabels.length === 0 ? (
             <p className="px-3 py-2 text-sm text-gray-400">ラベルがありません（ボードヘッダーから追加できます）</p>
           ) : (
             boardLabels.map(l => {
