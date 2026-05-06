@@ -113,15 +113,15 @@ export default function BoardList() {
         {boards.map((board) => (
           <div
             key={board.id}
-            className="relative group w-64 h-36 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+            className="relative group w-64 h-36 rounded-xl overflow-hidden shadow-md ring-1 ring-white/40 hover:shadow-lg transition-shadow"
           >
             {/* カード本体（クリックで遷移） */}
             <button
               onClick={() => navigate(`/boards/${board.id}`)}
-              className="w-full h-full flex flex-col cursor-pointer hover:brightness-105 transition-[filter]"
+              className="w-full h-full flex flex-col cursor-pointer hover:brightness-95 transition-[filter]"
             >
-              {/* 上部: タイトルエリア（青） */}
-              <div className="flex-1 bg-blue-700/80 px-3 py-2.5 flex items-start">
+              {/* 上部: タイトルエリア */}
+              <div className="flex-1 bg-white/70 backdrop-blur-md px-3 py-2.5 flex items-start">
                 {renamingBoardId === board.id ? (
                   <input
                     ref={renameInputRef}
@@ -134,15 +134,15 @@ export default function BoardList() {
                       if (e.key === 'Enter') saveRename()
                       if (e.key === 'Escape') setRenamingBoardId(null)
                     }}
-                    className="w-full bg-white/20 text-white font-bold text-sm rounded px-1 focus:outline-none focus:ring-2 focus:ring-white/60"
+                    className="w-full bg-white/60 text-gray-800 font-bold text-sm rounded px-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     disabled={savingRename}
                   />
                 ) : (
-                  <span className="font-bold text-white text-sm leading-snug text-left">{board.title}</span>
+                  <span className="font-bold text-gray-800 text-sm leading-snug text-left">{board.title}</span>
                 )}
               </div>
-              {/* 下部: メタ情報エリア（薄い青） */}
-              <div className="bg-blue-50/80 px-3 py-2 flex flex-col gap-0.5 text-xs text-blue-900/70">
+              {/* 下部: メタ情報エリア */}
+              <div className="bg-white/50 backdrop-blur-md px-3 py-2 flex flex-col gap-0.5 text-xs text-gray-500 border-t border-white/40">
                 <span>作成: {new Date(board.createdAt).toLocaleDateString('ja-JP')}</span>
                 <span>更新: {formatRelative(board.updatedAt)}</span>
               </div>
@@ -152,7 +152,7 @@ export default function BoardList() {
             <div className="absolute top-1.5 right-1.5" ref={openMenuId === board.id ? menuRef : undefined}>
               <button
                 onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === board.id ? null : board.id) }}
-                className="p-1 rounded text-white/60 hover:text-white hover:bg-white/20 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-black/10 opacity-0 group-hover:opacity-100 transition cursor-pointer"
                 title="メニュー"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
