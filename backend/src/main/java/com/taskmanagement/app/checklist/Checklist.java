@@ -36,6 +36,17 @@ public class Checklist {
     @OrderBy("position ASC")
     private List<ChecklistItem> items = new ArrayList<>();
 
+    protected Checklist() {}
+
+    Checklist(UUID id, Card card, String title, Double position, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.id = id;
+        this.card = card;
+        this.title = title;
+        this.position = position;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public UUID getId() { return id; }
     public Card getCard() { return card; }
     public String getTitle() { return title; }
@@ -43,4 +54,7 @@ public class Checklist {
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public List<ChecklistItem> getItems() { return items; }
+
+    void setTitle(String title) { this.title = title; }
+    void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

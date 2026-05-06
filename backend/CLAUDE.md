@@ -50,5 +50,5 @@ docker compose logs postgres   # ログ確認
 
 - Java 21
 - Spring Boot 3.4.x
-- Gradle（Kotlin DSL）
+- Gradle 8.13（Groovy DSL）
 - PostgreSQL 16（Flyway でマイグレーション管理）

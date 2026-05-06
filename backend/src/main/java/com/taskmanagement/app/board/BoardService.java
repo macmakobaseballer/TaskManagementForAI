@@ -6,12 +6,13 @@ import com.taskmanagement.app.card.CardSummaryResponse;
 import com.taskmanagement.app.label.LabelResponse;
 import com.taskmanagement.app.list.TaskList;
 import com.taskmanagement.app.list.TaskListResponse;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,8 +30,32 @@ public class BoardService {
         this.cardRepository = cardRepository;
     }
 
+    @Transactional
+    public BoardSummaryResponse createBoard(BoardCreateRequest request) {
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        Board board = new Board(UUID.randomUUID(), request.title().strip(), now, now);
+        return BoardSummaryResponse.from(boardRepository.save(board));
+    }
+
+    @Transactional
+    public BoardSummaryResponse updateBoard(UUID boardId, BoardUpdateRequest request) {
+        Board board = boardRepository.findActiveById(boardId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        board.setTitle(request.title().strip());
+        board.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        return BoardSummaryResponse.from(boardRepository.save(board));
+    }
+
+    @Transactional
+    public void deleteBoard(UUID boardId) {
+        Board board = boardRepository.findActiveById(boardId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        board.setDeletedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        boardRepository.save(board);
+    }
+
     public List<BoardSummaryResponse> getAllBoards() {
-        return boardRepository.findAll(Sort.by("createdAt"))
+        return boardRepository.findAllActive()
             .stream()
             .map(BoardSummaryResponse::from)
             .toList();

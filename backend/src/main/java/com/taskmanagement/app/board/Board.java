@@ -25,13 +25,29 @@ public class Board {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
     @OneToMany(mappedBy = "board", fetch = FetchType.LAZY)
     @OrderBy("position ASC")
     private List<TaskList> lists = new ArrayList<>();
+
+    protected Board() {}
+
+    Board(UUID id, String title, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.id = id;
+        this.title = title;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public List<TaskList> getLists() { return lists; }
+
+    void setTitle(String title) { this.title = title; }
+    void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
+    void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
 }
