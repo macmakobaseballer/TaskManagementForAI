@@ -77,11 +77,11 @@ export default function BoardList() {
     }
   }
 
-  if (error) return <div className="p-8 text-red-600">エラー: {error}</div>
+  if (error) return <div className="p-8 text-red-300 drop-shadow">エラー: {error}</div>
 
   if (loading && boards.length === 0) {
     return (
-      <div className="p-8 flex items-center gap-2 text-gray-500">
+      <div className="p-8 flex items-center gap-2 text-white/80">
         <Spinner />
         <span>読み込み中...</span>
       </div>
@@ -92,8 +92,8 @@ export default function BoardList() {
     <main className="p-8">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold">あなたのボード</h2>
-          {loading && <Spinner className="w-4 h-4" />}
+          <h2 className="text-lg font-bold text-white drop-shadow">あなたのボード</h2>
+          {loading && <Spinner className="w-4 h-4 text-white" />}
         </div>
         <button
           onClick={() => setShowCreate(true)}
@@ -103,7 +103,7 @@ export default function BoardList() {
         </button>
       </div>
       {boards.length === 0 && (
-        <p className="text-gray-500">ボードがありません。新しいボードを作成してください。</p>
+        <p className="text-white/80">ボードがありません。新しいボードを作成してください。</p>
       )}
       <div className="flex flex-wrap gap-4">
         {boards.map((board, i) => (

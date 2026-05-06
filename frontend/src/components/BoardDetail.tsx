@@ -144,11 +144,11 @@ export default function BoardDetail() {
     )
   }
 
-  if (error) return <div className="p-8 text-red-600">エラー: {error}</div>
+  if (error) return <div className="p-8 text-red-300 drop-shadow">エラー: {error}</div>
 
   if (loading && !board) {
     return (
-      <div className="p-8 flex items-center gap-2 text-gray-500">
+      <div className="p-8 flex items-center gap-2 text-white/80">
         <Spinner />
         <span>読み込み中...</span>
       </div>
