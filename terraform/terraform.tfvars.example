@@ -1,0 +1,16 @@
+# このファイルをコピーして terraform.tfvars を作成してください
+# terraform.tfvars は .gitignore で管理外になっています
+#
+# cp terraform.tfvars.example terraform.tfvars
+
+aws_region   = "ap-northeast-1"
+project_name = "taskmanagement"
+
+# EC2 の SSH キーペア名（terraform apply 前に AWS で作成しておく）
+key_name = "taskmanagement-key"
+
+# SSH を許可する自分のグローバル IP（curl ifconfig.me で確認）
+allowed_ssh_cidr = "xxx.xxx.xxx.xxx/32"
+
+# RDS のパスワード（英数字・記号、8文字以上）
+db_password = "ChangeMe1234!"
