@@ -4,10 +4,15 @@ import BoardList from './components/BoardList'
 import BoardDetail from './components/BoardDetail'
 import NotFoundPage from './components/NotFoundPage'
 
-// セッションごとにランダムな風景画像を選択（Picsum Photos）
+// ブラウザセッション内で同じ風景画像を維持（Picsum Photos）
 function useBackgroundImage() {
   return useMemo(() => {
-    const seed = Math.floor(Math.random() * 500) + 1
+    const KEY = 'bg_seed'
+    let seed = sessionStorage.getItem(KEY)
+    if (!seed) {
+      seed = String(Math.floor(Math.random() * 500) + 1)
+      sessionStorage.setItem(KEY, seed)
+    }
     return `https://picsum.photos/seed/${seed}/1920/1080`
   }, [])
 }
