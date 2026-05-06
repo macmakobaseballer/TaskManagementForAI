@@ -6,10 +6,6 @@ import ConfirmDialog from './ConfirmDialog'
 import Spinner from './Spinner'
 import { deleteBoard, updateBoard } from '../api/boards'
 
-const BG_COLORS = [
-  'bg-blue-600', 'bg-yellow-600', 'bg-green-700',
-  'bg-red-700', 'bg-purple-700', 'bg-teal-600',
-]
 
 export default function BoardList() {
   const { boards, loading, error, refetch } = useBoards()
@@ -106,15 +102,15 @@ export default function BoardList() {
         <p className="text-white/80">ボードがありません。新しいボードを作成してください。</p>
       )}
       <div className="flex flex-wrap gap-4">
-        {boards.map((board, i) => (
+        {boards.map((board) => (
           <div
             key={board.id}
-            className={`relative group w-48 h-24 rounded-md ${BG_COLORS[i % BG_COLORS.length]}`}
+            className="relative group w-48 h-24 rounded-md bg-white/90 backdrop-blur-sm shadow-sm"
           >
             {/* ボードカード本体（クリックで遷移） */}
             <button
               onClick={() => navigate(`/boards/${board.id}`)}
-              className="w-full h-full text-white text-left p-3 font-bold text-sm hover:brightness-110 transition cursor-pointer rounded-md"
+              className="w-full h-full text-gray-800 text-left p-3 font-bold text-sm hover:bg-black/5 transition cursor-pointer rounded-md"
             >
               {renamingBoardId === board.id ? (
                 <input
@@ -128,7 +124,7 @@ export default function BoardList() {
                     if (e.key === 'Enter') saveRename()
                     if (e.key === 'Escape') setRenamingBoardId(null)
                   }}
-                  className="w-full bg-white/20 text-white font-bold text-sm rounded px-1 focus:outline-none focus:ring-2 focus:ring-white/60"
+                  className="w-full bg-gray-100 text-gray-800 font-bold text-sm rounded px-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   disabled={savingRename}
                 />
               ) : (
@@ -140,7 +136,7 @@ export default function BoardList() {
             <div className="absolute top-1.5 right-1.5" ref={openMenuId === board.id ? menuRef : undefined}>
               <button
                 onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === board.id ? null : board.id) }}
-                className="p-1 rounded text-white/60 hover:text-white hover:bg-black/20 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-black/10 opacity-0 group-hover:opacity-100 transition cursor-pointer"
                 title="メニュー"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
