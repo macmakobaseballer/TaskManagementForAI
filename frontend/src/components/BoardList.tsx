@@ -7,6 +7,14 @@ import Spinner from './Spinner'
 import { deleteBoard, updateBoard } from '../api/boards'
 
 
+function formatRelative(dateStr: string): string {
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+  if (days === 0) return '今日'
+  if (days === 1) return '昨日'
+  if (days < 30) return `${days}日前`
+  return new Date(dateStr).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
+}
+
 export default function BoardList() {
   const { boards, loading, error, refetch } = useBoards()
   const navigate = useNavigate()
@@ -105,38 +113,46 @@ export default function BoardList() {
         {boards.map((board) => (
           <div
             key={board.id}
-            className="relative group w-48 h-24 rounded-md bg-blue-50/60 backdrop-blur-sm shadow-sm"
+            className="relative group w-64 h-36 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow"
           >
-            {/* ボードカード本体（クリックで遷移） */}
+            {/* カード本体（クリックで遷移） */}
             <button
               onClick={() => navigate(`/boards/${board.id}`)}
-              className="w-full h-full text-gray-800 text-left p-3 font-bold text-sm hover:bg-black/5 transition cursor-pointer rounded-md"
+              className="w-full h-full flex flex-col cursor-pointer hover:brightness-105 transition-[filter]"
             >
-              {renamingBoardId === board.id ? (
-                <input
-                  ref={renameInputRef}
-                  value={renameValue}
-                  onChange={e => setRenameValue(e.target.value)}
-                  onClick={e => e.stopPropagation()}
-                  onBlur={saveRename}
-                  onKeyDown={e => {
-                    e.stopPropagation()
-                    if (e.key === 'Enter') saveRename()
-                    if (e.key === 'Escape') setRenamingBoardId(null)
-                  }}
-                  className="w-full bg-gray-100 text-gray-800 font-bold text-sm rounded px-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  disabled={savingRename}
-                />
-              ) : (
-                board.title
-              )}
+              {/* 上部: タイトルエリア（青） */}
+              <div className="flex-1 bg-blue-700/80 px-3 py-2.5 flex items-start">
+                {renamingBoardId === board.id ? (
+                  <input
+                    ref={renameInputRef}
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                    onBlur={saveRename}
+                    onKeyDown={e => {
+                      e.stopPropagation()
+                      if (e.key === 'Enter') saveRename()
+                      if (e.key === 'Escape') setRenamingBoardId(null)
+                    }}
+                    className="w-full bg-white/20 text-white font-bold text-sm rounded px-1 focus:outline-none focus:ring-2 focus:ring-white/60"
+                    disabled={savingRename}
+                  />
+                ) : (
+                  <span className="font-bold text-white text-sm leading-snug text-left">{board.title}</span>
+                )}
+              </div>
+              {/* 下部: メタ情報エリア（薄い青） */}
+              <div className="bg-blue-50/80 px-3 py-2 flex flex-col gap-0.5 text-xs text-blue-900/70">
+                <span>作成: {new Date(board.createdAt).toLocaleDateString('ja-JP')}</span>
+                <span>更新: {formatRelative(board.updatedAt)}</span>
+              </div>
             </button>
 
             {/* 三点リーダーボタン */}
             <div className="absolute top-1.5 right-1.5" ref={openMenuId === board.id ? menuRef : undefined}>
               <button
                 onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === board.id ? null : board.id) }}
-                className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-black/10 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                className="p-1 rounded text-white/60 hover:text-white hover:bg-white/20 opacity-0 group-hover:opacity-100 transition cursor-pointer"
                 title="メニュー"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
