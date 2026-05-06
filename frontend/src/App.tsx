@@ -1,29 +1,21 @@
-import { useMemo } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import BoardList from './components/BoardList'
 import BoardDetail from './components/BoardDetail'
 import NotFoundPage from './components/NotFoundPage'
 
-// ブラウザセッション内で同じ風景画像を維持（Picsum Photos）
-function useBackgroundImage() {
-  return useMemo(() => {
-    const KEY = 'bg_seed'
-    let seed = sessionStorage.getItem(KEY)
-    if (!seed) {
-      seed = String(Math.floor(Math.random() * 500) + 1)
-      sessionStorage.setItem(KEY, seed)
-    }
-    return `https://picsum.photos/seed/${seed}/1920/1080`
-  }, [])
+// モジュールロード時に1度だけ実行（レンダーサイクル外で Math.random を呼ぶ）
+const _BG_KEY = 'bg_seed'
+if (!sessionStorage.getItem(_BG_KEY)) {
+  sessionStorage.setItem(_BG_KEY, String(Math.floor(Math.random() * 500) + 1))
 }
+const BG_IMAGE_URL = `https://picsum.photos/seed/${sessionStorage.getItem(_BG_KEY)}/1920/1080`
 
 export default function App() {
-  const bgImage = useBackgroundImage()
 
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${bgImage})` }}
+      style={{ backgroundImage: `url(${BG_IMAGE_URL})` }}
     >
       <header className="bg-blue-700/85 backdrop-blur-sm text-white px-4 h-12 flex items-center shadow-md">
         <h1 className="font-bold text-base flex items-center gap-2">
