@@ -173,7 +173,7 @@ export default function BoardDetail() {
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="relative flex-1 overflow-x-auto p-3 flex gap-3 items-start bg-blue-500/20"
+              className="relative flex-1 overflow-x-auto p-3 flex gap-3 items-start"
             >
               {localLists.map((list, listIndex) => (
                 <BoardListColumn
