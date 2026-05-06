@@ -32,7 +32,7 @@ public class TaskListController {
     @PatchMapping("/{listId}/position")
     public ResponseEntity<TaskListResponse> updateListPosition(
             @PathVariable UUID listId,
-            @RequestBody TaskListPositionUpdateRequest request) {
+            @RequestBody @Valid TaskListPositionUpdateRequest request) {
         return ResponseEntity.ok(taskListService.updateListPosition(listId, request));
     }
 
