@@ -202,6 +202,13 @@ terraform/
 ### Phase 4 — フロントエンドデプロイ
 
 **② 開発フロー**
+- [ ] `sg-ec2` の Port 8080 インバウンドを `0.0.0.0/0` → **CloudFront マネージドプレフィックスリスト**に変更
+  ```hcl
+  data "aws_ec2_managed_prefix_list" "cloudfront" {
+    name = "com.amazonaws.global.cloudfront.origin-facing"
+  }
+  # ingress の cidr_blocks を prefix_list_ids に切り替え
+  ```
 - [ ] Issue 作成
 - [ ] `feature/<issue番号>-s3-cloudfront` ブランチ作成
 - [ ] `module.s3_cloudfront` — S3 + CloudFront 実装
