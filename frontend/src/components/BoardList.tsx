@@ -105,7 +105,7 @@ export default function BoardList() {
         {boards.map((board) => (
           <div
             key={board.id}
-            className="relative group w-48 h-24 rounded-md bg-white/90 backdrop-blur-sm shadow-sm"
+            className="relative group w-48 h-24 rounded-md bg-blue-100/75 backdrop-blur-sm shadow-sm"
           >
             {/* ボードカード本体（クリックで遷移） */}
             <button
