@@ -9,7 +9,7 @@
 
 | サービス | 本番構成 | 学習構成（今回） | 月額差 |
 |---------|---------|----------------|-------|
-| バックエンド実行 | ECS Fargate | **EC2 t2.micro** (無料枠) | -$15〜30 |
+| バックエンド実行 | ECS Fargate | **EC2 t3.micro** (無料枠) | -$15〜30 |
 | ロードバランサー | ALB | **なし**（EC2直接） | -$16〜20 |
 | ネットワーク | NAT Gateway + Private Subnet | **Public Subnetのみ** | -$32〜45 |
 | シークレット管理 | Secrets Manager | **SSM Parameter Store** (無料) | -$0.40/secret |
@@ -17,7 +17,7 @@
 | フロントエンド | S3 + CloudFront | **S3 + CloudFront** (無料枠) | 変わらず |
 | **合計** | **~$80〜120/月** | **~$0/月**（無料枠内） | **-$80〜120** |
 
-> **無料枠の前提:** AWS アカウント作成から 12 ヶ月以内。EC2 t2.micro・RDS db.t3.micro は各 750 時間/月まで無料。
+> **無料枠の前提:** AWS アカウント作成から 12 ヶ月以内。EC2 t3.micro・RDS db.t3.micro は各 750 時間/月まで無料。
 
 ---
 
@@ -37,7 +37,7 @@ graph TB
 
         subgraph Network["VPC: 10.0.0.0/16"]
             subgraph PublicSubnet["Public Subnet (10.0.1.0/24, 10.0.2.0/24)"]
-                EC2["EC2 t2.micro\n(Spring Boot JAR)\nPort: 8080\n[無料枠 750h/月]"]
+                EC2["EC2 t3.micro\n(Spring Boot JAR)\nPort: 8080\n[無料枠 750h/月]"]
                 RDS["RDS db.t3.micro\nPostgreSQL 16\nPort: 5432\n[無料枠 750h/月]"]
             end
         end
@@ -58,7 +58,7 @@ graph TB
 
 | 変更点 | 本番 | 学習 | 理由 |
 |-------|------|------|------|
-| バックエンド | ECS Fargate | **EC2 t2.micro** | Fargate は無料枠なし。EC2 t2.micro は 12ヶ月無料 |
+| バックエンド | ECS Fargate | **EC2 t3.micro** | Fargate は無料枠なし。EC2 t3.micro は 12ヶ月無料 |
 | ロードバランサー | ALB | **なし** | ALB は最低 $16/月。学習では EC2 パブリック IP に直接 CloudFront を向ける |
 | ネットワーク | Private Subnet + NAT | **Public Subnet のみ** | NAT Gateway が最大のコスト源（$32〜45/月）。SG で DB へのアクセスを制限することで代替 |
 | シークレット管理 | Secrets Manager | **SSM Parameter Store** | Secrets Manager は $0.40/secret/月。SSM Standard パラメータは無料 |
@@ -102,7 +102,7 @@ terraform/
     │   ├── main.tf
     │   ├── variables.tf
     │   └── outputs.tf
-    ├── ec2/             # EC2 t2.micro・SG・キーペア・IAM ロール
+    ├── ec2/             # EC2 t3.micro・SG・キーペア・IAM ロール
     │   ├── main.tf
     │   ├── variables.tf
     │   └── outputs.tf
@@ -186,7 +186,7 @@ terraform/
 **② 開発フロー**
 - [ ] Issue 作成
 - [ ] `feature/<issue番号>-ec2-rds` ブランチ作成
-- [ ] `module.ec2` — EC2 t2.micro・SG・IAM ロール実装
+- [ ] `module.ec2` — EC2 t3.micro・SG・IAM ロール実装
 - [ ] `module.rds` — RDS db.t3.micro・サブネットグループ実装
 - [ ] セキュリティチェック実行
 - [ ] コミット → **Push 承認待ち** → PR → develop マージ
@@ -268,7 +268,7 @@ Spring Boot 起動時に自動実行される。`application-prod.yml` で `ddl-
 | Terraform EC2 リソース | https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance |
 | Terraform RDS リソース | https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance |
 | AWS 無料利用枠 詳細 | https://aws.amazon.com/jp/free/ |
-| AWS EC2 t2.micro スペック | https://aws.amazon.com/jp/ec2/instance-types/t2/ |
+| AWS EC2 t3.micro スペック | https://aws.amazon.com/jp/ec2/instance-types/t3/ |
 | AWS RDS 無料枠 | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_GettingStarted.html |
 | CloudFront + S3 構成 | https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/GettingStartedCreateDistribution.html |
 | SSM Parameter Store | https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html |
