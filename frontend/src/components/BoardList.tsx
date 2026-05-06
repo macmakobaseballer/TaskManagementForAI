@@ -96,12 +96,12 @@ export default function BoardList() {
     <main className="p-8">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-white drop-shadow">あなたのボード</h2>
+          <h2 className="text-xl font-bold text-white drop-shadow">あなたのボード</h2>
           {loading && <Spinner className="w-4 h-4 text-white" />}
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+          className="px-4 py-2 text-base bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
         >
           + 新しいボード
         </button>
